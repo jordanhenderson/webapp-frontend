@@ -1,0 +1,4 @@
+Place nginx/webapp binaries here, or set working directory to this folder.
+Adjust conf/nginx.conf as required.
+
+NOTE: Delete all README files when deploying!

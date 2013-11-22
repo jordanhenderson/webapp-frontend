@@ -1,0 +1,2 @@
+Client side templates, ie - handlebars, can be placed here.
+Files in this directory are directly included (without parsing) in content templates using 	{{T_TEMPLATE_FILENAME}}
