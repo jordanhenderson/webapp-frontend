@@ -33,12 +33,18 @@ M.cstr = function(str, idx)
 	return M.wstr[idx]
 end
 
+M.unescape = function(str)
+	str = string.gsub(str, "+", " ")
+	str = string.gsub(str, "%%(%x%x)", function (h)
+		return string.char(tonumber(h, 16))
+	end)
+	return str
+end
+
 M.get_parameters = function(params)
 	local p = {}
-	
-	local m = params:gmatch("(%w+)=(%w+)")
-	for i,k in m do
-		p[i] = k
+	for i,k in params:gmatch("([^&=]+)=([^&=]+)") do
+		p[M.unescape(i)] = M.unescape(k)
 	end
 	
 	return p
@@ -46,7 +52,7 @@ end
 
 M.get_function = function(params)
 	local f = ""
-	local m = params:gmatch("t=(%w+)")
+	local m = params:gmatch("t=([^&=]+)")
 	for i in m do
 		return i
 	end
