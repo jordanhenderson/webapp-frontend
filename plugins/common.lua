@@ -7,10 +7,10 @@ c = ffi.C
 local M = {}
 M.wstr = ffi.cast("webapp_str_t*", static_strings)
 M.split = function (str, sep)
-        local sep, fields = sep or ":", {}
-        local pattern = string.format("([^%s]+)", sep)
-        str:gsub(pattern, function(c) fields[#fields+1] = c end)
-        return fields
+	local sep, fields = sep or ":", {}
+	local pattern = string.format("([^%s]+)", sep)
+	str:gsub(pattern, function(c) fields[#fields+1] = c end)
+	return fields
 end
 
 M.appstr = function(webapp_str)
@@ -18,6 +18,18 @@ M.appstr = function(webapp_str)
 		webapp_str = M.wstr
 	end
 	return ffi.string(webapp_str.data, webapp_str.len)
+end
+
+M.gensql = function(cols, validcols, tbl, cond) 
+	local set = ""
+	for k,v in pairs(validcols) do
+		if cols[v] ~= nil then
+			set = set .. v .. "=" .. "?,"
+		end
+	end
+	set = set:sub(0, #set - 1)
+	
+	return "UPDATE " .. tbl .. " SET " .. set .. " WHERE " .. cond .. "=?;"
 end
 
 M.cstr = function(str, idx)
@@ -55,6 +67,21 @@ M.get_function = function(params)
 	local m = params:gmatch("t=([^&=]+)")
 	for i in m do
 		return i
+	end
+end
+
+M.tohex = function(s, upper)
+	if type(s) == 'number' then
+		return string.format(upper and '%08.8X' or '%08.8x', s)
+	end
+	if upper then
+		return (s:gsub('.', function(c)
+		  return string.format('%02X', string.byte(c))
+		end))
+	else
+		return (s:gsub('.', function(c)
+		  return string.format('%02x', string.byte(c))
+		end))
 	end
 end
 

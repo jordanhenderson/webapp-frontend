@@ -4,7 +4,7 @@
 local ffi = require("ffi")
 ffi.cdef[[
 typedef struct { const char* data; int len; } webapp_str_t;
-typedef struct { int status; long long lastrowid; int column_count; int db_type; webapp_str_t** row; webapp_str_t** desc; } Query;
+typedef struct { int status; long long lastrowid; int column_count; int db_type; webapp_str_t** row; webapp_str_t** desc; int need_desc; int have_desc; int rows_affected; } Query;
 typedef struct 
 { void* socket; 
   void* buf;
@@ -36,7 +36,7 @@ void BindParameter(Query* query, webapp_str_t* in);
 int SelectQuery(void* db, Query* query);
 ]]
 c = ffi.C
-handlers = require "core/handlers"
+handlers, page_security = load_handlers()
 common = require "common"
 time = require "time"
 
@@ -132,31 +132,53 @@ function get_cookie_val(cookies, key)
 	return nil
 end
 
+function getUser(session) 
+	 --use wstr[1] to keep userid for API functions
+	if c.GetSessionValue(session, common.cstr("userid"), common.wstr[2]) ~= 0 then
+		--Lookup user auth level.
+		local query = c.CreateQuery(common.cstr(SELECT_USER), request, 0)
+		c.BindParameter(query, common.wstr[2]) --use wstr[2]
+		c.SelectQuery(db,query)
+		if query.column_count > 0 and query.row ~= nil then
+			return query.row
+		end
+		
+	end
+end
+
 function getPage(uri_str, session, request)
 	local response = ""
 	local page = ""
 	local uri = uri_str.data
+	local uristr = common.appstr(uri_str)
 	if uri[0] == 47 --[[/]] and (uri[1] == 0 or uri[1] == 63 --[[?]]) then
-		page = "index.html"
+		page = "index"
 	else
-		local uristr = common.appstr(uri_str)
 		local f = find_first_of(uristr, "?#&")
-		page = string.sub(uristr, math.min(2, string.len(uristr)), f) .. ".html"
+		page = string.sub(uristr, math.min(2, string.len(uristr)), f)
 	end
-	local template = c.GetTemplate(app, common.cstr(page))
+	
+	local user = getUser(session)
+	local auth = tonumber(user and common.appstr(user[@col(COLS_USER, "auth")]) or AUTH_GUEST) 
+	if page_security[page] and auth < page_security[page] then
+		page = "index"
+	end
+	
+	local page_full = page .. ".html"
+	
+	local template = c.GetTemplate(app, common.cstr(page_full))
 	if template ~= nil then
 		-- Template process code.
 		if handlers["handleTemplate"] ~= nil then
-			handlers["handleTemplate"][2](template, uristr, session)
+			pcall(handlers["handleTemplate"][2], template, page, session, user, auth)
 		end
 		-- End template process code.
-		c.RenderTemplate(app, template, common.cstr(page), request, common.wstr)
+		c.RenderTemplate(app, template, common.cstr(page_full), request, common.wstr)
 		local content = common.appstr()
 		if content then
 			response = HTML_HEADER .. CONTENT_LEN_HEADER(string.len(content)) .. END_HEADER .. content
 		end
 	end
-
 	return response
 end
 
@@ -166,12 +188,19 @@ function processAPI(params, session, request)
 	local func_str = common.get_function(params_str)
 	local func = handlers[func_str]
 
-	local auth = AUTH_USER --Change this when auth is implemented.
-	if func ~= nil then
-		local call_str = func[2](params_str, session)
-		if call_str ~= nil then
+	local user = getUser(session)
+	local auth = tonumber(user and common.appstr(user[@col(COLS_USER, "auth")]) or AUTH_GUEST) --user == user["auth"] == auth
+	if func ~= nil and auth >= func[1] then
+		local ret, call_str = pcall(func[2], params_str, session, user, auth)
+		if ret and call_str ~= nil then
 			tmp_response = call_str
+		else
+			tmp_response = "{}"
+			print(call_str)
 		end
+	elseif func ~= nil then
+		--Not logged in. 
+		tmp_response = MESSAGE("NO_AUTH")
 	else
 		--No matching handler.
 		tmp_response = "{}"
@@ -179,6 +208,8 @@ function processAPI(params, session, request)
 	
 	return JSON_HEADER .. CONTENT_LEN_HEADER(string.len(tmp_response)) .. END_HEADER .. tmp_response
 end
+
+math.randomseed(os.time())
 
 request = c.GetNextRequest(requests)
 
@@ -193,8 +224,8 @@ while request ~= nil do
 		session = c.GetSession(sessions, sessionid)
 
 	end
-	--Create final with four spaces (enough space for the length integer stored by the backend.).
-	local final = "    " 
+	--Create final with two spaces (enough space for the length integer stored by the backend.).
+	local final = "  " 
 	local cookie = ""
 	if session == nil then
 		-- Create a new session. Needs refinement to prevent spamming.
@@ -225,9 +256,9 @@ while request ~= nil do
 	end
 	
 	if string.len(response) > 0 then
-		final = final .. HTML_200 .. cookie .. response
+		final = final .. HTTP_200 .. cookie .. response
 		else
-		final = final .. HTML_404 .. cookie .. HTML_HEADER .. CONTENT_LEN_HEADER(0) .. END_HEADER
+		final = final .. HTTP_404 .. cookie .. HTML_HEADER .. CONTENT_LEN_HEADER(0) .. END_HEADER
 	end
 
 	c.WriteData(request.socket, common.cstr(final))

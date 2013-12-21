@@ -114,12 +114,17 @@ local function posptostr(h, m, s, ms)
 end
 
 function p_mt:__tostring()
-  local h, m, s, ms = self:parts()
-  if self._ticks >= 0 then
-    return posptostr(h, m, s, ms)
-  else
-    return "-"..posptostr(-h, -m, -s, -ms)
-  end
+	local tmp = self:copy()
+	local out = ffi.new("char[20]")
+	local count = 19
+	for i=19,0,-1 do
+		out[i] = 48 + (tmp._ticks % 10)
+		tmp._ticks = tmp._ticks / 10
+		if tmp._ticks == 0 then break end
+		count = count - 1
+	end
+
+	return ffi.string(out + count, 20 - count)
 end
 
 function p_mt:__eq(rhs) T_period(rhs)
@@ -418,108 +423,31 @@ function M.todate(x) T_int64_str(x)
   return d_ctrange(x) -- Arg is int64.
 end
 
---	UtcTime, LocalTime ---------------------------------------------------------
--- TODO: implement for other systems.
-if jit.os == "Windows" then
-  ffi.cdef[[
-  typedef unsigned long DWORD;
-  typedef unsigned short WORD;
-  typedef unsigned long long ULONGLONG;
-  
-  typedef struct {
-    DWORD dwLowDateTime;
-    DWORD dwHighDateTime;
-  } FILETIME, *PFILETIME;
-  
-  typedef struct {
-    WORD wYear;
-    WORD wMonth;
-    WORD wDayOfWeek;
-    WORD wDay;
-    WORD wHour;
-    WORD wMinute;
-    WORD wSecond;
-    WORD wMilliseconds;
-  } SYSTEMTIME, *PSYSTEMTIME;
-  
-  typedef union _ULARGE_INTEGER {
-    struct {
-      DWORD LowPart;
-      DWORD HighPart;
-    };
-    struct {
-      DWORD LowPart;
-      DWORD HighPart;
-    } u;
-    ULONGLONG QuadPart;
-  } ULARGE_INTEGER, *PULARGE_INTEGER;
-  
-  void GetSystemTimeAsFileTime(PFILETIME lpSystemTimeAsFileTime);
-  bool FileTimeToSystemTime(const FILETIME *lpFileTime,
-    PSYSTEMTIME lpSystemTime);
-  void GetLocalTime(PSYSTEMTIME lpSystemTime);
-  ]]
-  
-  local ft_ct = ffi.typeof("FILETIME")
-  local st_ct = ffi.typeof("SYSTEMTIME")
-  local ul_ct = ffi.typeof("ULARGE_INTEGER")
-  local C = ffi.C
-  local ftoffset = 199222329599999000ULL
-  
-  local st = st_ct() -- Buffer.
-  function M.nowlocal()
-    C.GetLocalTime(st)
-    return date(st.wYear, st.wMonth, st.wDay) + period(st.wHour, st.wMinute,
-      st.wSecond, st.wMilliseconds*1000)
+function M.toddate(x) T_int64_str(x)
+  if type(x) == "string" then
+    local f1, l1, year, month, day = 
+      x:find("(%d+)-(%d+)-(%d+)")
+    if (year == nil) then
+      err("parse", x.." is not a string representation of a date")
+    end
+    if l1 ~= #x then
+      err("parse", x.." contains additional data after date")
+    end
+    local ton = tonumber
+    return date(ton(year), ton(month), ton(day))
   end
-  
-  -- TODO: Can we just use an int64_t here?
-  local ul = ul_ct() -- Buffer.
-  local function ft_to_int64(x)
-    ul.LowPart = x.dwLowDateTime
-    ul.HighPart = x.dwHighDateTime
-    return ul.QuadPart
-  end
-  
-  local ft = ft_ct() -- Buffer.
+  return d_ctrange(x) -- Arg is int64.
+end
+
+ffi.cdef[[
+unsigned long long GetWebappTime();
+]]
+
+c = ffi.C
    -- No daylight adjustment, potentially faster and more precise.
   function M.nowutc()
-    C.GetSystemTimeAsFileTime(ft)
-    return d_ct(ft_to_int64(ft)/10 + ftoffset)
-  end
-else -- Windows
---POSIX
-ffi.cdef[[
-	typedef long time_t;
-	time_t time(time_t* tloc);
-	typedef struct {
-		int sec;
-		int min;
-		int hour;
-		int mday;
-		int mon;
-		int year;
-		int wday;
-		int yday;
-		int isdst;
-		} tm;
-	tm* localtime_r(time_t* timer, tm* result);
-]]
-  local t_ct = ffi.typeof("time_t")
-  local tm_ct = ffi.typeof("tm")
-  local lt = t_ct() 
-  local tm = tm_ct()
-  local C = ffi.C
-  function M.nowlocal()
-	local result = C.time(lt)
-	C.localtime_r(result, tm);
-	return date(tm.year + 1900, tm.month + 1, tm.wday) + period(tm.hour, tm.min, tm.sec, 0)
+    return  d_ct(c.GetWebappTime() + 210866803199999000ULL)
   end
 
-  function M.nowutc()
-	local result = C.time(lt)
-	return d_ct(result)
-  end
-end
 
 return M
