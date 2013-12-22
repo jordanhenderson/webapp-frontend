@@ -9,10 +9,8 @@ Process* GetNextProcess(void* queue);
 c = ffi.C
 common = require "common"
 local process = c.GetNextProcess(queue)
-while process do
+while process ~= nil do
   local f = common.appstr(process.func)
   local v = common.appstr(process.vars)
-  print(f)
-  print(v)  
   process = c.GetNextProcess(queue)
 end
