@@ -133,7 +133,7 @@ function get_cookie_val(cookies, key)
 end
 
 function getUser(session) 
-	 --use wstr[1] to keep userid for API functions
+	 --use wstr[2] to keep userid for API functions
 	if c.GetSessionValue(session, common.cstr("userid"), common.wstr[2]) ~= 0 then
 		--Lookup user auth level.
 		local query = c.CreateQuery(common.cstr(SELECT_USER), request, 0)

@@ -15,7 +15,6 @@ c = ffi.C
 
 --[[NOTES
 common.wstr[2] provides user id. Do not write over [2] in order to preserve id.
-See TODO sections below initially to address important settings.
 --]]
 
 function hashPassword(password, salt)
@@ -47,7 +46,7 @@ function login(vars, session)
 		local hashedpw = ""
 		if password ~= nil then hashedpw = hashPassword(password, salt) end
 		if userid ~= nil and userid > 0 and hashedpw == storedpw then
-			c.SetSessionValue(session, common.cstr("userid", 1), query.row[0])
+			c.SetSessionValue(session, common.cstr("userid", 1), query.row[@col(COLS_USER_LOGIN, "id")])
 			return _MESSAGE("LOGIN_SUCCESS", 1)
 		else
 			return MESSAGE("LOGIN_FAILED")
@@ -69,22 +68,18 @@ function updateUser(vars, session, user, auth)
 	local user = v["user"]
 	local password = v["pass"]
 	local target_auth = v["auth"]
-	--TODO: Uncomment the below after admin user created.
-	if --[[auth == AUTH_USER or ]] ((id == nil or id:len() == 0) and (user == nil or password == nil)) then 
+	if auth == AUTH_USER or ((id == nil or id:len() == 0) and (user == nil or password == nil)) then 
 		id = common.appstr(common.wstr[2])
 	end
 	
-	--[[ TODO: Uncomment the below after admin user created.
 	if auth == AUTH_USER and target_auth then
 		target_auth = _STR_(AUTH_USER) --Users cannot change auth level.
 	end
-	--]]
 	
 	local pass, salt = hashPassword(password)
 	
 	local query
-	--TODO: Uncomment the below to secure user creation to admins only.
-	if id == nil --[[and auth == AUTH_ADMIN--]] then
+	if id == nil and auth == AUTH_ADMIN then
 		query = c.CreateQuery(common.cstr(ADD_USER), request, 0)
 		--Insertion requires all values to be populated (non-nil).
 		c.BindParameter(query, common.cstr(user))
@@ -119,13 +114,12 @@ function clearCache(vars, session)
 	return MESSAGE("CACHE_CLEARED")
 end
 
-function handleTemplate(template, vars, session)
+function handleTemplate(template, page, session, user, auth)
 	--[[TODO: Place template logic here. Use calls similar to the following:
 		c.Template_ShowGlobalSection(template, common.cstr("NOT_LOGGED_IN"))
 		c.Template_ShowGlobalSection(template, common.cstr("LOGGED_IN")) --]]
 end
 
---TODO: updateUser should be set to AUTH_USER, after an initial user is created.
 handlers = {
 --Login
 	login = {AUTH_GUEST, login},
@@ -136,7 +130,7 @@ handlers = {
 --Render a content template.
 	handleTemplate = {AUTH_GUEST, handleTemplate},
 --Update the current user (AUTH_USER) or a specific user.
-	updateUser = {AUTH_GUEST, updateUser},
+	updateUser = {AUTH_USER, updateUser},
 }
 
 page_security = {
