@@ -4,6 +4,7 @@ typedef struct { const char* data; int len; } webapp_str_t;
 int ConnectDatabase(void* db, int database_type, const char* host, const char* username, const char* password, const char* database);
 long long ExecString(void* db, webapp_str_t* in);
 void DisableBackgroundQueue(void* app);
+void SetParamInt(void* app, unsigned int param, unsigned int value);
 ]]
 c = ffi.C
 @include 'plugins/constants.lua'
@@ -13,5 +14,7 @@ c.ExecString(db, common.cstr(PRAGMA_FOREIGN))
 for k,v in ipairs(common.split(CREATE_DATABASE, ";")) do
 	c.ExecString(db, common.cstr(v))
 end
+
+c.SetParamInt(app, WEBAPP_PARAM_PORT, 5000)
 
 -- Disable background queue (long running operations): c.DisableBackgroundQueue(app)

@@ -16,6 +16,7 @@ COMMIT;"
 @def DATABASE_QUERY_INIT 0
 @def DATABASE_QUERY_STARTED 1
 @def DATABASE_QUERY_FINISHED 2
+@def WEBAPP_PARAM_PORT 0
 
 --JSON generator functions
 @def _MESSAGE(msg, reload) '{"data":[{"msg":"' .. msg .. '"' .. (reload and ', "reload":1' or '') .. @join('}], "type":', RESPONSE_TYPE_MESSAGE, '}')
