@@ -1,1 +1,2 @@
-See client/server README for specific template instructions.
+Server-side templates (ctemplate) include files can be placed here.
+Use {{>T_TEMPLATE_FILENAME}} in a content template to render the file.
