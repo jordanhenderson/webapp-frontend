@@ -16,29 +16,34 @@ M.define("gensql_", function(get)
 	
 end)
 
+
 function parsemacro(mac)
 	local out = ""
 	if mac == nil or mac.subst == nil then return "" end
-	for i,k in pairs(mac.subst) do
-		if k[1] == "string" then
-			out = out .. k[2]:sub(2,-2)
-		elseif k[1] == "number" then
-			out = out .. k[2]
-		elseif k[1] == "space" then
-			out = out .. " "
-		elseif k[1] == "comment" then
-		--Not handled
-		elseif k[1] == "iden" then
-			local _mac = M.macro_table[k[2]]
-			if _mac ~= nil then
-				out = out .. parsemacro(_mac)
+	if type(mac.subst) == "table" then
+		for i,k in pairs(mac.subst) do
+			if k[1] == "string" then
+				out = out .. k[2]:sub(2,-2)
+			elseif k[1] == "number" then
+				out = out .. k[2]
+			elseif k[1] == "space" then
+				out = out .. " "
+			elseif k[1] == "comment" then
+			--Not handled
+			elseif k[1] == "iden" then
+				local _mac = M.macro_table[k[2]]
+				if _mac ~= nil then
+					out = out .. parsemacro(_mac)
+				else
+					out = out .. "' .. " .. k[2] .. ".. '"
+				end
 			else
-				out = out .. "' .. " .. k[2] .. ".. '"
+				--handle symbols
+				out = out .. k[1]
 			end
-		else
-			--handle symbols
-			out = out .. k[1]
 		end
+	elseif type(mac.subst) == "function" then
+		--unhandled as of yet.	
 	end
 	return out
 end

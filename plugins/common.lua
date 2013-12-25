@@ -20,10 +20,12 @@ M.appstr = function(webapp_str)
 	return ffi.string(webapp_str.data, webapp_str.len)
 end
 
-M.gensql = function(cols, validcols, tbl, cond) 
+M.gensql = function(tbl, cond, validcols, ...) 
 	local set = ""
-	for k,v in pairs(validcols) do
-		if cols[v] ~= nil then
+	local args = {...}
+	for k,v in ipairs(validcols) do
+		local val = args[k]
+		if val ~= nil then
 			set = set .. v .. "=" .. "?,"
 		end
 	end
