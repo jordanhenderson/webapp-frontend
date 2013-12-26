@@ -34,7 +34,7 @@ c.ExecString(db, common.cstr(PRAGMA_FOREIGN))
 for k,v in ipairs(common.split(CREATE_DATABASE, ";")) do
 	c.ExecString(db, common.cstr(v))
 end
-handlers._updateUser[2](OPERATION_ADD, "admin", "admin", _STR_(AUTH_ADMIN))
+handlers.updateUser[2](@join("user=admin&pass=admin&auth=", AUTH_ADMIN), nil, nil, AUTH_ADMIN)
 c.SetParamInt(app, WEBAPP_PARAM_PORT, 5000)
 
 -- Disable background queue (long running operations): c.DisableBackgroundQueue(app)

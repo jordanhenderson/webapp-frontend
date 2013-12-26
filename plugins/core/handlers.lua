@@ -61,59 +61,45 @@ function logout(vars, session)
 	return _MESSAGE("LOGOUT_SUCCESS", 1)
 end
 
-function _updateUser(operation, user, password, auth, id)
-	local pass, salt = hashPassword(password)
-	local query
-	
-	if operation == OPERATION_ADD then
-		query = c.CreateQuery(common.cstr(ADD_USER), request, 0)
-	elseif operation == OPERATION_UPDATE then
-		query = c.CreateQuery(common.cstr(common.gensql("users", "id", {COLS_USER}, user, pass, salt, auth)), request, 0)
-	else return false
-	end
-	--Insertion requires all values to be populated (non-nil).
-	
-	c.BindParameter(query, common.cstr(user))
-	c.BindParameter(query, common.cstr(pass))
-	c.BindParameter(query, common.cstr(salt))
-	c.BindParameter(query, common.cstr(auth))
-	
-	if operation == OPERATION_UPDATE then
-		c.BindParameter(query, common.cstr(id))
-	end
-	c.SelectQuery(db, query)
-	
-	return query.lastrowid > 0 or query.rows_affected > 0
-end
-
 function updateUser(vars, session, user, auth)
 	local v = common.get_parameters(vars)
 	--Input variables.
 	local id = v["id"]
-	local user = v["user"]
+	local target_user = v["user"]
 	local password = v["pass"]
 	local target_auth = v["auth"]
-	if auth == AUTH_USER or ((id == nil or id:len() == 0) and (user == nil or password == nil)) then 
-		id = common.appstr(common.wstr[2])
+
+	if auth == AUTH_USER or ((id == nil or id:len() == 0) and (target_user == nil or password == nil)) then 
+		id = common.wstr[2] --Use current user
 	end
 	if auth == AUTH_USER and target_auth then
 		target_auth = _STR_(AUTH_USER) --Users cannot change auth level.
 	end
 	
-	local result
-	if id == nil and auth == AUTH_ADMIN then
-		result = _updateUser(OPERATION_ADD, user, password, target_auth)
+	local pass, salt = hashPassword(password)
+	local query = c.CreateQuery(nil, request, 0)
+	c.BindParameter(query, common.cstr(target_user))
+	c.BindParameter(query, common.cstr(pass))
+	c.BindParameter(query, common.cstr(salt))
+	c.BindParameter(query, common.cstr(target_auth))
+	
+	if id == nil then 
+		c.SetQuery(query, common.cstr(ADD_USER))
 	else
 		--id provided, Generate UPDATE query
-		result = _updateUser(OPERATION_UPDATE, user, password, target_auth, id)
+		if type(id) == 'string' then
+			id = common.cstr(id,1)
+		end
+		c.BindParameter(query, id)
+		c.SetQuery(query, common.cstr(common.gensql("users", "id", {COLS_USER}, target_user, pass, salt, target_auth)))
 	end
-	
-	if result then
+
+	c.SelectQuery(db, query)
+	if query.lastrowid > 0 or query.rows_affected > 0 then
 		return MESSAGE("ADDUSER_SUCCESS")
 	else
 		return MESSAGE("ADDUSER_FAILED")
 	end
-	
 end
 
 function clearCache(vars, session)
@@ -138,8 +124,6 @@ handlers = {
 	handleTemplate = {AUTH_GUEST, handleTemplate},
 --Update the current user (AUTH_USER) or a specific user.
 	updateUser = {AUTH_USER, updateUser},
---Internal update user call. Bypasses checks.
-	_updateUser = {AUTH_SYSTEM, _updateUser},
 }
 
 page_security = {

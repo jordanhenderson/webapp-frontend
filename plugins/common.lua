@@ -22,9 +22,8 @@ end
 
 M.gensql = function(tbl, cond, validcols, ...) 
 	local set = ""
-	local args = {...}
 	for k,v in ipairs(validcols) do
-		local val = args[k]
+		local val = select(k, ...)
 		if val ~= nil then
 			set = set .. v .. "=" .. "?,"
 		end
