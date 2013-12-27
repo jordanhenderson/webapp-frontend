@@ -31,7 +31,7 @@ handlers = load_handlers()
 request = ffi.cast("Request*", tmp_request)
 c.ConnectDatabase(db, DATABASE_TYPE_SQLITE, "webapp.sqlite", nil, nil, nil)
 c.ExecString(db, common.cstr(PRAGMA_FOREIGN))
-for k,v in ipairs(common.split(CREATE_DATABASE, ";")) do
+for k,v in ipairs(CREATE_DATABASE) do
 	c.ExecString(db, common.cstr(v))
 end
 handlers.updateUser[2](@join("user=admin&pass=admin&auth=", AUTH_ADMIN), nil, nil, AUTH_ADMIN)

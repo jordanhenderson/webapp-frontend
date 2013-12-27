@@ -71,7 +71,7 @@ M.define("col_", function(get)
 	return tostring(count)
 end)
 
-M.define("join_", function(get)
+function join_macro(get)
 	get:expecting '('
 	local l = get:list():strip_spaces()
 	local subst = {}
@@ -81,5 +81,15 @@ M.define("join_", function(get)
 		end
 	end
 	local mac = {subst=subst}
-	return "'" .. parsemacro(mac) .. "'"
+	return parsemacro(mac)
+end
+
+--Return a concatenated string surrounded by single quote marks.
+M.define("join_", function(get)
+	return "'" .. join_macro(get) .. "'"
+end)
+
+--Return a concatenated string surrounded by double quote marks.
+M.define("joind_", function(get)
+	return '"' .. join_macro(get) .. '"'
 end)
