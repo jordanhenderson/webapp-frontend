@@ -4,7 +4,7 @@
 local ffi = require("ffi")
 ffi.cdef[[
 typedef struct { const char* data; int len; } webapp_str_t;
-typedef struct { int status; long long lastrowid; int column_count; int db_type; webapp_str_t** row; webapp_str_t** desc; int need_desc; int have_desc; int rows_affected; } Query;
+typedef struct { int status; long long lastrowid; int column_count; webapp_str_t** row; webapp_str_t** desc; int need_desc; int have_desc; int rows_affected; } Query;
 typedef struct 
 { void* socket; 
   void* buf;
@@ -18,7 +18,7 @@ typedef struct
   webapp_str_t cookies;
   webapp_str_t request_body;
 } Request;
-
+typedef struct {int nError; int db_type;} Database;
 int GetSessionValue(void*, webapp_str_t* key, webapp_str_t* out);
 int SetSessionValue(void*, webapp_str_t* key, webapp_str_t* val);
 void* GetSession(void*, webapp_str_t*);
@@ -29,13 +29,16 @@ void RenderTemplate(void*, void*, webapp_str_t*, Request*, webapp_str_t* out);
 void FinishRequest(Request*);
 void* GetTemplate(void*, webapp_str_t*);
 Request* GetNextRequest(void* requests);
+Database* GetDatabase(void* app, int index);
 void WriteData(void* socket, webapp_str_t* data);
-Query* CreateQuery(webapp_str_t* in, Request*, int desc);
+Query* CreateQuery(webapp_str_t* in, Request*, Database*, int desc);
 void SetQuery(Query* query, webapp_str_t* in);
 void BindParameter(Query* query, webapp_str_t* in);
-int SelectQuery(void* db, Query* query);
+int SelectQuery(Query* query);
 ]]
 c = ffi.C
+db = c.GetDatabase(app, 0)
+
 handlers, page_security = load_handlers()
 common = require "common"
 time = require "time"
@@ -136,9 +139,9 @@ function getUser(session)
 	 --use wstr[2] to keep userid for API functions
 	if c.GetSessionValue(session, common.cstr("userid"), common.wstr[2]) ~= 0 then
 		--Lookup user auth level.
-		local query = c.CreateQuery(common.cstr(SELECT_USER), request, 0)
+		local query = c.CreateQuery(common.cstr(SELECT_USER), request, db, 0)
 		c.BindParameter(query, common.wstr[2]) --use wstr[2]
-		c.SelectQuery(db,query)
+		c.SelectQuery(query)
 		if query.column_count > 0 and query.row ~= nil then
 			return query.row
 		end

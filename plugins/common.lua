@@ -20,19 +20,6 @@ M.appstr = function(webapp_str)
 	return ffi.string(webapp_str.data, webapp_str.len)
 end
 
-M.gensql = function(tbl, cond, validcols, ...) 
-	local set = ""
-	for k,v in ipairs(validcols) do
-		local val = select(k, ...)
-		if val ~= nil then
-			set = set .. v .. "=" .. "?,"
-		end
-	end
-	set = set:sub(0, #set - 1)
-	
-	return "UPDATE " .. tbl .. " SET " .. set .. " WHERE " .. cond .. "=?;"
-end
-
 M.cstr = function(str, idx)
 	if idx == nil then
 		idx = 0

@@ -16,6 +16,8 @@
 @def DATABASE_QUERY_FINISHED 2
 @def WEBAPP_PARAM_PORT 0
 
+@def QUERY_TYPE_INSERT 0
+@def QUERY_TYPE_UPDATE 1
 --JSON generator functions
 @def _MESSAGE(msg, reload) '{"data":[{"msg":"' .. msg .. '"' .. (reload and ', "reload":1' or '') .. @join('}], "type":', RESPONSE_TYPE_MESSAGE, '}')
 @def MESSAGE(msg) _MESSAGE(msg, nil)
@@ -30,7 +32,6 @@
 @def SELECT_USER @join("SELECT ", COLS_USER, " FROM users WHERE id = ?;")
 
 --Insert SQL statements.
-@def ADD_USER @gensql(COLS_USER, "users")
 
 --HTTP Header macros
 @def END_HEADER "\r\n"

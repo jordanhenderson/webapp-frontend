@@ -446,7 +446,7 @@ unsigned long long GetWebappTime();
 c = ffi.C
    -- No daylight adjustment, potentially faster and more precise.
   function M.nowutc()
-    return  d_ct(c.GetWebappTime() + 210866803199999000ULL)
+    return  d_ct(tonumber(c.GetWebappTime()) + 210866803199999000ULL)
   end
 
 
