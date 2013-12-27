@@ -32,6 +32,37 @@ function hashPassword(password, salt)
 	return pass, salt
 end
 
+
+function gensql(query, query_type, tbl, cond, validcols, ...) 
+	if query_type == QUERY_TYPE_UPDATE then
+		local set = ""
+		for k,v in ipairs(validcols) do
+			local val = select(k, ...)
+			if val ~= nil then
+				c.BindParameter(query, common.cstr(val))
+				set = set .. v .. "=" .. "?,"
+			end
+		end
+		set = set:sub(0, #set - 1)
+		return "UPDATE " .. tbl .. " SET " .. set .. " WHERE " .. cond .. "=?;"
+	elseif query_type == QUERY_TYPE_INSERT then
+		local vs = ""
+		local cols = ""
+		local col_count = 0
+		for k,v in ipairs(validcols) do
+			local val = select(k, ...)
+			if val ~= nil then
+				c.BindParameter(query, common.cstr(val))
+				cols = cols .. v .. ","
+				col_count = col_count + 1
+			end
+		end
+		cols = cols:sub(0, #cols - 1)
+		vs = string.rep("?,", col_count - 1) .. "?"
+		return "INSERT INTO " .. tbl .. " (" .. cols .. ") VALUES (" .. vs .. ");"
+	end
+end
+
 function login(vars, session)
 	local v = common.get_parameters(vars)
 	local password = v["pass"]
@@ -71,6 +102,8 @@ function updateUser(vars, session, user, auth)
 
 	if auth == AUTH_USER or ((id == nil or id:len() == 0) and (target_user == nil or password == nil)) then 
 		id = common.wstr[2] --Use current user
+	elseif id ~= nil and id:len() == 0 then
+		id = nil --Ignore empty ID field (use INSERT query)
 	end
 	if auth == AUTH_USER and target_auth then
 		target_auth = _STR_(AUTH_USER) --Users cannot change auth level.
@@ -78,22 +111,24 @@ function updateUser(vars, session, user, auth)
 	
 	local pass, salt = hashPassword(password)
 	local query = c.CreateQuery(nil, request, 0)
-	c.BindParameter(query, common.cstr(target_user))
-	c.BindParameter(query, common.cstr(pass))
-	c.BindParameter(query, common.cstr(salt))
-	c.BindParameter(query, common.cstr(target_auth))
-	
-	if id == nil then 
-		c.SetQuery(query, common.cstr(ADD_USER))
+	local query_type
+	if id == nil then
+		query_type = QUERY_TYPE_INSERT
 	else
-		--id provided, Generate UPDATE query
 		if type(id) == 'string' then
-			id = common.cstr(id,1)
+			id = common.cstr(id, 1)
 		end
-		c.BindParameter(query, id)
-		c.SetQuery(query, common.cstr(common.gensql("users", "id", {COLS_USER}, target_user, pass, salt, target_auth)))
+		query_type = QUERY_TYPE_UPDATE
 	end
 
+	local sql = gensql(query, query_type, "users", "id", {COLS_USER}, 
+		target_user, pass, salt, target_auth)
+		
+	if id ~= nil then
+		c.BindParameter(query, id)
+	end
+	
+	c.SetQuery(query, common.cstr(sql))
 	c.SelectQuery(db, query)
 	if query.lastrowid > 0 or query.rows_affected > 0 then
 		return MESSAGE("ADDUSER_SUCCESS")
