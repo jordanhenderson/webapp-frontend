@@ -16,8 +16,7 @@ M.define("gensql_", function(get)
 	
 end)
 
-
-function parsemacro(mac)
+function parsemacro(mac, sep)
 	local out = ""
 	if mac == nil or mac.subst == nil then return "" end
 	if type(mac.subst) == "table" then
@@ -35,7 +34,7 @@ function parsemacro(mac)
 				if _mac ~= nil then
 					out = out .. parsemacro(_mac)
 				else
-					out = out .. "' .. " .. k[2] .. ".. '"
+					out = out .. sep .. " .. " .. k[2] .. " .. " .. sep
 				end
 			else
 				--handle symbols
@@ -71,7 +70,7 @@ M.define("col_", function(get)
 	return tostring(count)
 end)
 
-function join_macro(get)
+function join_macro(get, sep, expand)
 	get:expecting '('
 	local l = get:list():strip_spaces()
 	local subst = {}
@@ -81,15 +80,15 @@ function join_macro(get)
 		end
 	end
 	local mac = {subst=subst}
-	return parsemacro(mac)
+	return sep .. parsemacro(mac, sep, expand) .. sep
 end
 
 --Return a concatenated string surrounded by single quote marks.
 M.define("join_", function(get)
-	return "'" .. join_macro(get) .. "'"
+	return join_macro(get, "'", true)
 end)
 
 --Return a concatenated string surrounded by double quote marks.
 M.define("joind_", function(get)
-	return '"' .. join_macro(get) .. '"'
+	return join_macro(get, '"', true)
 end)
