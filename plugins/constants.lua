@@ -1,5 +1,5 @@
 --Create database queries.
-@def (CREATE_DATABASE {
+@def (CREATE_DATABASE(db_type) {
 "BEGIN;",
 "CREATE TABLE `users` (`id` INTEGER PRIMARY KEY NOT NULL, `user` TEXT NOT NULL, `pass` TEXT NOT NULL, `salt` TEXT NOT NULL, `auth` INTEGER NOT NULL, UNIQUE(`user`) ON CONFLICT IGNORE);",
 "COMMIT;"
@@ -45,3 +45,12 @@
 @def JSON_HEADER @join("Content-type: application/json", END_HEADER)
 @def CONTENT_LEN_HEADER(len) "Content-Length: " .. len .. END_HEADER
 @def DISABLE_CACHE_HEADER @join("Cache-Control: no-cache, no-store, must-revalidate", END_HEADER, "Pragma: no-cache", END_HEADER, "Expires: 0", END_HEADER)
+
+--SQL compatibility functions. Produces correct SQL depending on in-use engine.
+function SQL_CURRENTDATE(db_type)
+	if db_type == DATABASE_TYPE_SQLITE then
+		return "date('now')"
+	elseif db_type == DATABASE_TYPE_MYSQL then
+		return "CURDATE()"
+	end
+end

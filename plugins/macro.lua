@@ -86,7 +86,7 @@ end
 function M.copy_tokens(tok,pred)
     local res = {}
     local t,v = tok()
-    while t and not (pred and pred(t,v)) do
+    while t and not (pred and pred(t,v,tok)) do
         append(res,{t,v})
         t,v = tok()
     end

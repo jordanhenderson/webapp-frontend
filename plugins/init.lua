@@ -32,12 +32,12 @@ c = ffi.C
 common = require "common"
 handlers = load_handlers()
 request = ffi.cast("Request*", tmp_request)
-db = c.CreateDatabase(app)
-
+db = c.CreateDatabase(app) 
 c.ConnectDatabase(db, DATABASE_TYPE_SQLITE, "webapp.sqlite", nil, nil, nil)
 
 c.ExecString(db, common.cstr(PRAGMA_FOREIGN))
-for k,v in ipairs(CREATE_DATABASE) do
+for k,v in ipairs(CREATE_DATABASE(DATABASE_TYPE_SQLITE)) do
+	print(v)
 	c.ExecString(db, common.cstr(v))
 end
 
