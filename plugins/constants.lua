@@ -30,7 +30,6 @@
 @def COLS_USER "user", "pass", "salt", "auth"
 @def COLS_USER_LOGIN "id", "pass", "salt"
 
-
 --Filtered select statements
 @def SELECT_USER_LOGIN @join("SELECT ", COLS_USER_LOGIN, " FROM users WHERE user = ?;")
 @def SELECT_USER @join("SELECT ", COLS_USER, " FROM users WHERE id = ?;")
@@ -53,4 +52,32 @@ function SQL_CURRENTDATE(db_type)
 	elseif db_type == DATABASE_TYPE_MYSQL then
 		return "CURDATE()"
 	end
+end
+
+function SQL_CONCAT(db_type, ...)
+	local n = select("#", ...)
+	if n < 1 then
+		return ""
+	elseif n == 1 then
+		return select(1, ...)
+	end
+	
+	local out = ""
+	local op = ""
+	
+	if db_type == DATABASE_TYPE_SQLITE then
+		out = "(" 
+		op = " || "
+	elseif db_type == DATABASE_TYPE_MYSQL then
+		out = "CONCAT("
+		op = ","
+	end
+	local p = 0
+	for i = 1, n - 1 do 
+		out = out .. select(n, ...) .. op
+		p = p + 1
+	end
+	
+	out = out .. select(p, ...) .. ")"
+	return out
 end

@@ -199,7 +199,6 @@ function processAPI(params, session, request)
 			tmp_response = call_str
 		else
 			tmp_response = "{}"
-			print(call_str)
 		end
 	elseif func ~= nil then
 		--Not logged in. 
