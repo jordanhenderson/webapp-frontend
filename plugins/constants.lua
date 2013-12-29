@@ -44,7 +44,6 @@
 @def JSON_HEADER @join("Content-type: application/json", END_HEADER)
 @def CONTENT_LEN_HEADER(len) "Content-Length: " .. len .. END_HEADER
 @def DISABLE_CACHE_HEADER @join("Cache-Control: no-cache, no-store, must-revalidate", END_HEADER, "Pragma: no-cache", END_HEADER, "Expires: 0", END_HEADER)
-
 --SQL compatibility functions. Produces correct SQL depending on in-use engine.
 function SQL_CURRENTDATE(db_type)
 	if db_type == DATABASE_TYPE_SQLITE then
@@ -72,9 +71,9 @@ function SQL_CONCAT(db_type, ...)
 		out = "CONCAT("
 		op = ","
 	end
-	local p = 0
+	local p = 1
 	for i = 1, n - 1 do 
-		out = out .. select(n, ...) .. op
+		out = out .. select(i, ...) .. op
 		p = p + 1
 	end
 	
