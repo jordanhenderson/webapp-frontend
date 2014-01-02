@@ -173,7 +173,8 @@ function getPage(uri_str, session, request)
 	if template ~= nil then
 		-- Template process code.
 		if handlers["handleTemplate"] ~= nil then
-			pcall(handlers["handleTemplate"][2], template, page, session, user, auth)
+			local status, err = pcall(handlers["handleTemplate"][2], template, page, session, user, auth)
+			if not status then print(err) end
 		end
 		-- End template process code.
 		c.RenderTemplate(app, template, common.cstr(page_full), request, common.wstr)
@@ -198,6 +199,7 @@ function processAPI(params, session, request)
 		if ret and call_str ~= nil then
 			tmp_response = call_str
 		else
+			print(call_str)
 			tmp_response = "{}"
 		end
 	elseif func ~= nil then
