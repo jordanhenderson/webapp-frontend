@@ -172,8 +172,9 @@ function getPage(uri_str, session, request)
 	local template = c.GetTemplate(app, common.cstr(page_full))
 	if template ~= nil then
 		-- Template process code.
-		if handlers["handleTemplate"] ~= nil then
-			local status, err = pcall(handlers["handleTemplate"][2], template, page, session, user, auth)
+		local handleTemplate = handlers.handleTemplate
+		if handleTemplate ~= nil then
+			local status, err = pcall(handleTemplate[2], template, page, session, user, auth)
 			if not status then print(err) end
 		end
 		-- End template process code.

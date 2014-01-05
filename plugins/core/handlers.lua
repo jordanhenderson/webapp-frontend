@@ -64,9 +64,9 @@ end
 
 function login(vars, session)
 	local v = common.get_parameters(vars)
-	local password = v["pass"]
+	local password = v.pass
 	local query = c.CreateQuery(common.cstr(SELECT_USER_LOGIN), request, db, 0)
-	c.BindParameter(query, common.cstr(v["user"]))
+	c.BindParameter(query, common.cstr(v.user))
 	local res = c.SelectQuery(query)
 	if res == DATABASE_QUERY_STARTED and query.column_count == @col(COLS_USER_LOGIN) and query.row ~= nil then
 		local userid = tonumber(common.appstr(query.row[@col(COLS_USER_LOGIN, "id")]))
@@ -94,10 +94,10 @@ end
 function updateUser(vars, session, user, auth)
 	local v = common.get_parameters(vars)
 	--Input variables.
-	local id = v["id"]
-	local target_user = v["user"]
-	local password = v["pass"]
-	local target_auth = v["auth"]
+	local id = v.id
+	local target_user = v.user
+	local password = v.pass
+	local target_auth = v.auth
 
 	if auth == AUTH_USER or ((id == nil or id:len() == 0) and (target_user == nil or password == nil)) then 
 		id = common.wstr[2] --Use current user
