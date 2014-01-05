@@ -62,6 +62,25 @@ function gensql(query, query_type, tbl, cond, validcols, ...)
 	end
 end
 
+function dump_query(query)
+	local hasdesc = false
+	data = {}
+	desc = {}
+	local res = c.SelectQuery(query)
+	if res == DATABASE_QUERY_STARTED and query.row ~= nil then
+		row = {}
+		for i=0, query.column_count - 1 do
+			if not hasdesc then
+				desc[i] = common.appstr(query.desc[i])
+			end
+			row[desc[i]] = common.appstr(query.row[i])
+		end
+		data[#data+1] = row
+		hasdesc = true
+	end
+	return data
+end
+
 function login(vars, session)
 	local v = common.get_parameters(vars)
 	local password = v.pass
@@ -130,9 +149,9 @@ function updateUser(vars, session, user, auth)
 	c.SetQuery(query, common.cstr(sql))
 	c.SelectQuery(query)
 	if query.lastrowid > 0 or query.rows_affected > 0 then
-		return MESSAGE("ADDUSER_SUCCESS")
+		return MESSAGE("UPDATEUSER_SUCCESS")
 	else
-		return MESSAGE("ADDUSER_FAILED")
+		return MESSAGE("UPDATEUSER_FAILED")
 	end
 end
 
