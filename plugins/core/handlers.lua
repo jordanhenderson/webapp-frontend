@@ -142,10 +142,9 @@ function updateUser(vars, session, user, auth)
 	local sql = gensql(query, query_type, "users", "id", {COLS_USER}, 
 		target_user, pass, salt, target_auth)
 		
-	if id ~= nil then
-		c.BindParameter(query, id)
-	end
 	
+	c.BindParameter(query, id)
+		
 	c.SetQuery(query, common.cstr(sql))
 	c.SelectQuery(query)
 	if query.lastrowid > 0 or query.rows_affected > 0 then
