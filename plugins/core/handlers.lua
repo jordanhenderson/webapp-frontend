@@ -147,7 +147,7 @@ function updateUser(vars, session, user, auth)
 		
 	c.SetQuery(query, common.cstr(sql))
 	c.SelectQuery(query)
-	if query.lastrowid > 0 or query.rows_affected > 0 then
+	if tonumber(query.lastrowid) > 0 or query.rows_affected > 0 then
 		return MESSAGE("UPDATEUSER_SUCCESS")
 	else
 		return MESSAGE("UPDATEUSER_FAILED")

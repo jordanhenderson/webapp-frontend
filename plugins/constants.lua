@@ -34,8 +34,6 @@
 @def SELECT_USER_LOGIN @join("SELECT ", COLS_USER_LOGIN, " FROM users WHERE user = ?;")
 @def SELECT_USER @join("SELECT ", COLS_USER, " FROM users WHERE id = ?;")
 
---Insert SQL statements.
-
 --HTTP Header macros
 @def END_HEADER "\r\n"
 @def HTML_HEADER @join("Content-type: text/html", END_HEADER)
