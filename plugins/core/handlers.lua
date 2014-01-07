@@ -17,6 +17,8 @@ c = ffi.C
 common.wstr[2] provides user id. Do not write over [2] in order to preserve id.
 --]]
 
+@def USERID common.appstr(common.wstr[2])
+
 function hashPassword(password, salt)
 	local pass --hashed password.
 	--Process password, salt.
@@ -119,7 +121,7 @@ function updateUser(vars, session, user, auth)
 	local target_auth = v.auth
 
 	if auth == AUTH_USER or ((id == nil or id:len() == 0) and (target_user == nil or password == nil)) then 
-		id = common.wstr[2] --Use current user
+		id = USERID --Use current user
 	elseif id ~= nil and id:len() == 0 then
 		id = nil --Ignore empty ID field (use INSERT query)
 	end
@@ -133,22 +135,20 @@ function updateUser(vars, session, user, auth)
 	if id == nil then
 		query_type = QUERY_TYPE_INSERT
 	else
-		if type(id) == 'string' then
-			id = common.cstr(id, 1)
-		end
 		query_type = QUERY_TYPE_UPDATE
 	end
 
 	local sql = gensql(query, query_type, "users", "id", {COLS_USER}, 
 		target_user, pass, salt, target_auth)
-		
 	
-	c.BindParameter(query, id)
+	--Bind ID parameter (in case of update queries)
+	c.BindParameter(query, common.cstr(id))
 		
 	c.SetQuery(query, common.cstr(sql))
 	c.SelectQuery(query)
-	if tonumber(query.lastrowid) > 0 or query.rows_affected > 0 then
-		return MESSAGE("UPDATEUSER_SUCCESS")
+	local lastrowid = tonumber(query.lastrowid)
+	if lastrowid > 0 or query.rows_affected > 0 then
+		return cjson.encode({msg="UPDATEUSER_SUCCESS", id = id or lastrowid, type=RESPONSE_TYPE_MESSAGE})
 	else
 		return MESSAGE("UPDATEUSER_FAILED")
 	end

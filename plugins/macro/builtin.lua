@@ -11,9 +11,10 @@ local function macro_def (scoped)
         local upto,ret
         if t == '(' then
             t,name = get:next()
-            upto = function(t,v,tok) 
+            upto = function(t,v) 
                 if t == ')' then
-                    tk,tv = tok()
+                    tk, tv = get:peek(1, true)
+                    
                     return tk == 'space' and tv:find '\n'
                 end
                 return false
