@@ -23,7 +23,7 @@
 @def QUERY_TYPE_INSERT 0
 @def QUERY_TYPE_UPDATE 1
 --JSON generator functions
-@def _MESSAGE(msg, reload) '{"data":[{"msg":"' .. msg .. '"' .. (reload and ', "reload":1' or '') .. @join('}], "type":', RESPONSE_TYPE_MESSAGE, '}')
+@def _MESSAGE(msg, reload) '{"msg":"' .. msg .. '"' .. (reload and ', "reload":1' or '') .. @join(', "type":', RESPONSE_TYPE_MESSAGE, '}')
 @def MESSAGE(msg) _MESSAGE(msg, nil)
 
 --Column definitions. Use _PUBLIC for fields that can be changed using update_.
