@@ -68,8 +68,8 @@ function dump_query(query)
 	local hasdesc = false
 	data = {}
 	desc = {}
-	local res = c.SelectQuery(query)
-	if res == DATABASE_QUERY_STARTED and query.row ~= nil then
+	if c.SelectQuery(query) == DATABASE_QUERY_STARTED then
+		repeat
 		row = {}
 		for i=0, query.column_count - 1 do
 			if not hasdesc then
@@ -79,6 +79,7 @@ function dump_query(query)
 		end
 		data[#data+1] = row
 		hasdesc = true
+		until c.SelectQuery(query) == DATABASE_QUERY_FINISHED
 	end
 	return data
 end
