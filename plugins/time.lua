@@ -114,17 +114,8 @@ local function posptostr(h, m, s, ms)
 end
 
 function p_mt:__tostring()
-	local tmp = self:copy()
-	local out = ffi.new("char[20]")
-	local count = 19
-	for i=19,0,-1 do
-		out[i] = 48 + (tmp._ticks % 10)
-		tmp._ticks = tmp._ticks / 10
-		if tmp._ticks == 0 then break end
-		count = count - 1
-	end
-
-	return ffi.string(out + count, 20 - count)
+	local s = tostring(self._ticks)
+	return s:sub(0, #s - 2)
 end
 
 function p_mt:__eq(rhs) T_period(rhs)
