@@ -1,8 +1,8 @@
 --Create database queries.
 @def (CREATE_DATABASE(db_type) {
-"BEGIN;",
-@join("CREATE TABLE `users` (`id` INTEGER PRIMARY KEY NOT NULL, `user` TEXT NOT NULL, `pass` TEXT NOT NULL, `salt` TEXT NOT NULL, `auth` INTEGER NOT NULL DEFAULT (",AUTH_USER,"), UNIQUE(`user`) ON CONFLICT IGNORE);"),
-"COMMIT;"
+'BEGIN;',
+@join('CREATE TABLE IF NOT EXISTS "users" ("id" INTEGER PRIMARY KEY NOT NULL, "user" TEXT NOT NULL, "pass" TEXT NOT NULL, "salt" TEXT NOT NULL, "auth" INTEGER NOT NULL DEFAULT (',AUTH_USER,'), UNIQUE("user") ON CONFLICT IGNORE);'),
+'COMMIT;'
 })
 
 @def PRAGMA_FOREIGN "PRAGMA foreign_keys = ON;"
