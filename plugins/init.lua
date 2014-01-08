@@ -15,9 +15,9 @@ typedef struct
   webapp_str_t cookies;
   webapp_str_t request_body;
 } Request;
-typedef struct {int nError; int db_type;} Database;
+typedef struct {int nError; size_t db_type;} Database;
 Database* CreateDatabase(void* app);
-Database* GetDatabase(void* app, int index);
+Database* GetDatabase(void* app, size_t index);
 int ConnectDatabase(Database* db, int database_type, const char* host, const char* username, const char* password, const char* database);
 long long ExecString(void* db, webapp_str_t* in);
 void DisableBackgroundQueue(void* app);

@@ -18,7 +18,7 @@ typedef struct
   webapp_str_t cookies;
   webapp_str_t request_body;
 } Request;
-typedef struct {int nError; int db_type;} Database;
+typedef struct {int nError; size_t db_type;} Database;
 int GetSessionValue(void*, webapp_str_t* key, webapp_str_t* out);
 int SetSessionValue(void*, webapp_str_t* key, webapp_str_t* val);
 void* GetSession(void*, webapp_str_t*);
@@ -29,7 +29,7 @@ void RenderTemplate(void*, void*, webapp_str_t*, Request*, webapp_str_t* out);
 void FinishRequest(Request*);
 void* GetTemplate(void*, webapp_str_t*);
 Request* GetNextRequest(void* requests);
-Database* GetDatabase(void* app, int index);
+Database* GetDatabase(void* app, size_t index);
 void WriteData(void* socket, webapp_str_t* data);
 Query* CreateQuery(webapp_str_t* in, Request*, Database*, int desc);
 void SetQuery(Query* query, webapp_str_t* in);
