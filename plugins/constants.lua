@@ -1,7 +1,7 @@
 --Create database queries.
 @def (CREATE_DATABASE(db_type) {
 'BEGIN;',
-@join('CREATE TABLE IF NOT EXISTS "users" ("id" INTEGER PRIMARY KEY NOT NULL, "user" TEXT NOT NULL, "pass" TEXT NOT NULL, "salt" TEXT NOT NULL, "auth" INTEGER NOT NULL DEFAULT (',AUTH_USER,'), UNIQUE("user") ON CONFLICT IGNORE);'),
+@join('CREATE TABLE IF NOT EXISTS "users" ("id" INTEGER PRIMARY KEY NOT NULL, "user" TEXT NOT NULL, "pass" TEXT NOT NULL, "salt" TEXT NOT NULL, "auth" INTEGER NOT NULL DEFAULT ',AUTH_USER,', UNIQUE(user) ON CONFLICT IGNORE);'),
 'COMMIT;'
 })
 
@@ -42,14 +42,6 @@
 @def JSON_HEADER @join("Content-type: application/json", END_HEADER)
 @def CONTENT_LEN_HEADER(len) "Content-Length: " .. len .. END_HEADER
 @def DISABLE_CACHE_HEADER @join("Cache-Control: no-cache, no-store, must-revalidate", END_HEADER, "Pragma: no-cache", END_HEADER, "Expires: 0", END_HEADER)
---SQL compatibility functions. Produces correct SQL depending on in-use engine.
-function SQL_CURRENTDATE(db_type)
-	if db_type == DATABASE_TYPE_SQLITE then
-		return "date('now')"
-	elseif db_type == DATABASE_TYPE_MYSQL then
-		return "CURDATE()"
-	end
-end
 
 function SQL_CONCAT(db_type, ...)
 	local n = select("#", ...)
@@ -77,4 +69,12 @@ function SQL_CONCAT(db_type, ...)
 	
 	out = out .. select(p, ...) .. ")"
 	return out
+end
+
+function SQL_SESSION(db_type)
+	if db_type == DATABASE_TYPE_SQLITE then
+		return ""
+	elseif db_type == DATABASE_TYPE_MYSQL then
+		return "SET SESSION sql_mode = 'ANSI_QUOTES';"
+	end
 end
