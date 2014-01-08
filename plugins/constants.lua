@@ -1,7 +1,8 @@
 --Create database queries.
 @def (CREATE_DATABASE(db_type) {
 'BEGIN;',
-@join('CREATE TABLE IF NOT EXISTS "users" ("id" INTEGER PRIMARY KEY NOT NULL, "user" TEXT NOT NULL, "pass" TEXT NOT NULL, "salt" TEXT NOT NULL, "auth" INTEGER NOT NULL DEFAULT ',AUTH_USER,', UNIQUE(user) ON CONFLICT IGNORE);'),
+SQL_SESSION(db_type),
+@join('CREATE TABLE IF NOT EXISTS "users" ("id" INTEGER PRIMARY KEY NOT NULL, "user" VARCHAR(20) NOT NULL, "pass" CHAR(64) NOT NULL, "salt" CHAR(6) NOT NULL, "auth" INTEGER NOT NULL DEFAULT ',AUTH_USER,',') .. SQL_UNIQUE(db_type, "user") .. ');',
 'COMMIT;'
 })
 
@@ -77,4 +78,14 @@ function SQL_SESSION(db_type)
 	elseif db_type == DATABASE_TYPE_MYSQL then
 		return "SET SESSION sql_mode = 'ANSI_QUOTES';"
 	end
+	return ""
+end
+
+function SQL_UNIQUE(db_type, row)
+	if db_type == DATABASE_TYPE_SQLITE then
+		return "UNIQUE(" .. row ..") ON CONFLICT IGNORE"
+	elseif db_type == DATABASE_TYPE_MYSQL then
+		return "UNIQUE(" .. row ..")"
+	end
+	return ""
 end
