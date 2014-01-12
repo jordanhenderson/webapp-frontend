@@ -1,7 +1,16 @@
 local ffi = require("ffi")
 ffi.cdef[[
 typedef struct { const char* data; int len; } webapp_str_t;
-typedef struct { int status; long long lastrowid; int column_count; webapp_str_t** row; webapp_str_t** desc; int need_desc; int have_desc; int rows_affected; } Query;
+typedef struct { 
+  int status; 
+  long long lastrowid; 
+  int column_count; 
+  webapp_str_t* row; 
+  webapp_str_t* desc; 
+  int need_desc; 
+  int have_desc; 
+  int rows_affected; 
+} Query;
 typedef struct 
 { void* socket; 
   void* buf;

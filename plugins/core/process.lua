@@ -8,8 +8,8 @@ typedef struct {
   int status; 
   long long lastrowid; 
   int column_count; 
-  webapp_str_t** row; 
-  webapp_str_t** desc; 
+  webapp_str_t* row; 
+  webapp_str_t* desc; 
   int need_desc; 
   int have_desc; 
   int rows_affected;
