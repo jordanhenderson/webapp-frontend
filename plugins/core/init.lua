@@ -20,7 +20,6 @@ Database* CreateDatabase(void* app);
 Database* GetDatabase(void* app, size_t index);
 int ConnectDatabase(Database* db, int database_type, const char* host, const char* username, const char* password, const char* database);
 long long ExecString(void* db, webapp_str_t* in);
-void DisableBackgroundQueue(void* app);
 void SetParamInt(void* app, unsigned int param, int value);
 void GetParamInt(void* app, unsigned int param);
 Query* CreateQuery(webapp_str_t* in, Request*, Database*, int desc);
@@ -44,4 +43,4 @@ end
 handlers.updateUser[2](@join("user=admin&pass=admin&auth=", AUTH_ADMIN), nil, nil, AUTH_ADMIN)
 c.SetParamInt(app, WEBAPP_PARAM_PORT, 5000)
 
--- Disable background queue (long running operations): c.DisableBackgroundQueue(app)
+-- Disable background queue (long running operations): c.SetParamInt(app, WEBAPP_PARAM_BGQUEUE, 0);

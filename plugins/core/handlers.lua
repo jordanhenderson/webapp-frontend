@@ -1,6 +1,6 @@
 local ffi = require("ffi")
 ffi.cdef[[
-typedef struct { const char* data; int len; } webapp_str_t;
+typedef struct { const char* data; long long len; } webapp_str_t;
 int QueueProcess(void* app, webapp_str_t* func, webapp_str_t* vars);
 void ClearCache(void* app, void* requests);
 void DestroySession(void* session);

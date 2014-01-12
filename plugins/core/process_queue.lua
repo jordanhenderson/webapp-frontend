@@ -1,7 +1,7 @@
 --Handles the background process queue.
 local ffi = require("ffi")
 ffi.cdef[[
-typedef struct { const char* data; int len; } webapp_str_t;
+typedef struct { const char* data; long long len; } webapp_str_t;
 typedef struct Process {webapp_str_t* func; webapp_str_t* vars;} Process;
 void QueueProcess(void* queue, webapp_str_t* func, webapp_str_t* vars);
 Process* GetNextProcess(void* queue);

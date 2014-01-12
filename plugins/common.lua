@@ -1,6 +1,6 @@
 local ffi = require("ffi")
 ffi.cdef[[
-typedef struct { const char* data; int len; } webapp_str_t;
+typedef struct { const char* data; long long len; } webapp_str_t;
 ]]
 c = ffi.C
 
@@ -17,7 +17,7 @@ M.appstr = function(webapp_str)
 	if webapp_str == nil then
 		webapp_str = M.wstr
 	end
-	return ffi.string(webapp_str.data, webapp_str.len)
+	return ffi.string(webapp_str.data, tonumber(webapp_str.len))
 end
 
 M.cstr = function(str, idx)

@@ -3,8 +3,17 @@
 
 local ffi = require("ffi")
 ffi.cdef[[
-typedef struct { const char* data; int len; } webapp_str_t;
-typedef struct { int status; long long lastrowid; int column_count; webapp_str_t** row; webapp_str_t** desc; int need_desc; int have_desc; int rows_affected; } Query;
+typedef struct { const char* data; long long len; } webapp_str_t;
+typedef struct { 
+  int status; 
+  long long lastrowid; 
+  int column_count; 
+  webapp_str_t** row; 
+  webapp_str_t** desc; 
+  int need_desc; 
+  int have_desc; 
+  int rows_affected;
+} Query;
 typedef struct 
 { void* socket; 
   void* buf;
@@ -27,7 +36,7 @@ int GetSessionID(void*, webapp_str_t* out);
 
 void RenderTemplate(void*, void*, webapp_str_t*, Request*, webapp_str_t* out);
 void FinishRequest(Request*);
-void* GetTemplate(void*, webapp_str_t*);
+void* GetTemplate(void*);
 Request* GetNextRequest(void* requests);
 Database* GetDatabase(void* app, size_t index);
 void WriteData(void* socket, webapp_str_t* data);
@@ -102,7 +111,8 @@ function gen_cookie(name, value, days)
 	local h, mins, s = t:period():parts()
 	local day = daystr(t:weekday())
 	local month = monthstr(m)
-	local out = string.format("Set-Cookie: %s=%s; Expires=%s, %02i %s %i %02i:%02i:%02i GMT \r\n", name, value, day, d, month, year, h, mins, s)
+	local out = string.format("Set-Cookie: %s=%s; Expires=%s, %02i %s %i %02i:%02i:%02i GMT \r\n", 
+		name, value, day, d, month, year, h, mins, s)
 	return out
 end
 
@@ -169,7 +179,7 @@ function getPage(uri_str, session, request)
 	
 	local page_full = page .. ".html"
 	
-	local template = c.GetTemplate(app, common.cstr(page_full))
+	local template = c.GetTemplate(app)
 	if template ~= nil then
 		-- Template process code.
 		local handleTemplate = handlers.handleTemplate
@@ -187,14 +197,13 @@ function getPage(uri_str, session, request)
 	return response
 end
 
-function processAPI(params, session, request)
+function processAPI(params_str, session, request)
 	local tmp_response = "{}"
-	local params_str = common.appstr(params)
 	local func_str = common.get_function(params_str)
 	local func = handlers[func_str]
 
 	local user = getUser(session)
-	local auth = tonumber(user and common.appstr(user[@col(COLS_USER, "auth")]) or AUTH_GUEST) --user == user["auth"] == auth
+	local auth = tonumber(user and common.appstr(user[@col(COLS_USER, "auth")]) or AUTH_GUEST)
 	if func ~= nil and auth >= func[1] then
 		local ret, call_str = pcall(func[2], params_str, session, user, auth)
 		if ret and call_str ~= nil then
@@ -242,21 +251,24 @@ while request ~= nil do
 	end
 	
 	local response = ""
-	if request.uri.len > 3
+	local uri_len = tonumber(request.uri.len)
+	if uri_len > 3
 		and request.uri.data[1] == 97 -- a
 		and request.uri.data[2] == 112 -- p
 		and request.uri.data[3] == 105 -- i
 		and request.uri.data[0] == 47 -- / (check last - just in case.)
 	then
-		if method == 2 and request.uri.len > 6 then 
+		if method == 2 and uri_len > 6 then 
 			local uri = common.wstr
 			uri.data = request.uri.data + 5
-			uri.len = request.uri.len - 5
+			uri.len = uri_len - 5
+			uri = common.appstr()
 			response = processAPI(uri, session, request)
 		elseif method == 8 then
-			response = processAPI(request.request_body, session, request)
+			local params = common.appstr(request.request_body)
+			response = processAPI(params, session, request)
 		end
-	else 
+	elseif uri_len >= 1 then
 		response = getPage(request.uri, session, request)
 	end
 	
