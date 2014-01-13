@@ -34,8 +34,10 @@ void GetParamInt(void* app, unsigned int param);
 Query* CreateQuery(webapp_str_t* in, Request*, Database*, int desc);
 void SetQuery(Query* query, webapp_str_t* in);
 void BindParameter(Query* query, webapp_str_t* in);
+void ReloadTemplates();
 int SelectQuery(Query* query);
 ]]
+--Globals provided to this file: app
 c = ffi.C
 @include 'plugins/constants.lua'
 common = require "common"
@@ -51,5 +53,8 @@ end
 
 handlers.updateUser[2](@join("user=admin&pass=admin&auth=", AUTH_ADMIN), nil, nil, AUTH_ADMIN)
 c.SetParamInt(app, WEBAPP_PARAM_PORT, 5000)
+
+c.ReloadTemplates()
+
 
 -- Disable background queue (long running operations): c.SetParamInt(app, WEBAPP_PARAM_BGQUEUE, 0);

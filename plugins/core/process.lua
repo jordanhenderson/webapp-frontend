@@ -36,7 +36,7 @@ int GetSessionID(void*, webapp_str_t* out);
 
 void RenderTemplate(void*, void*, webapp_str_t*, Request*, webapp_str_t* out);
 void FinishRequest(Request*);
-void* GetTemplate(void*);
+void* GetTemplate(void*, Request*);
 Request* GetNextRequest(void* requests);
 Database* GetDatabase(void* app, size_t index);
 void WriteData(void* socket, webapp_str_t* data);
@@ -45,6 +45,7 @@ void SetQuery(Query* query, webapp_str_t* in);
 void BindParameter(Query* query, webapp_str_t* in);
 int SelectQuery(Query* query);
 ]]
+--Globals provided to this file: app, sessions, requests, templates
 c = ffi.C
 db = c.GetDatabase(app, 0)
 
@@ -179,7 +180,7 @@ function getPage(uri_str, session, request)
 	
 	local page_full = page .. ".html"
 	
-	local template = c.GetTemplate(app)
+	local template = c.GetTemplate(app, request)
 	if template ~= nil then
 		-- Template process code.
 		local handleTemplate = handlers.handleTemplate
@@ -188,7 +189,7 @@ function getPage(uri_str, session, request)
 			if not status then print(err) end
 		end
 		-- End template process code.
-		c.RenderTemplate(app, template, common.cstr(page_full), request, common.wstr)
+		c.RenderTemplate(templates, template, common.cstr(page_full), request, common.wstr)
 		local content = common.appstr()
 		if content then
 			response = HTML_HEADER .. CONTENT_LEN_HEADER(string.len(content)) .. END_HEADER .. content
