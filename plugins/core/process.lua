@@ -3,8 +3,12 @@
 
 local ffi = require("ffi")
 ffi.cdef[[
-typedef struct { const char* data; long long len; } webapp_str_t;
-typedef struct { 
+//Struct definitions
+typedef struct {
+  const char* data; 
+  long long len;
+} webapp_str_t;
+typedef struct {
   int status; 
   long long lastrowid; 
   int column_count; 
@@ -14,8 +18,8 @@ typedef struct {
   int have_desc; 
   int rows_affected;
 } Query;
-typedef struct 
-{ void* socket; 
+typedef struct {
+  void* socket; 
   void* buf;
   void* headers;
   int recv_amount; 
@@ -27,23 +31,47 @@ typedef struct
   webapp_str_t cookies;
   webapp_str_t request_body;
 } Request;
-typedef struct {int nError; size_t db_type;} Database;
+typedef struct {
+  int nError; 
+  size_t db_type;
+} Database;
+
+//Session Functions
 int GetSessionValue(void*, webapp_str_t* key, webapp_str_t* out);
 int SetSessionValue(void*, webapp_str_t* key, webapp_str_t* val);
 void* GetSession(void*, webapp_str_t*);
 void* NewSession(void*, Request*);
 int GetSessionID(void*, webapp_str_t* out);
 
-void RenderTemplate(void*, void*, webapp_str_t*, Request*, webapp_str_t* out);
+//Template Functions
+void Template_Render(void*, void*, webapp_str_t*, Request*, webapp_str_t* out);
+void* Template_Get(void*, Request*);
+
+//Request Functions
 void FinishRequest(Request*);
-void* GetTemplate(void*, Request*);
 Request* GetNextRequest(void* requests);
-Database* GetDatabase(void* app, size_t index);
 void WriteData(void* socket, webapp_str_t* data);
+
+//Database Functions
+Database* GetDatabase(void* app, size_t index);
 Query* CreateQuery(webapp_str_t* in, Request*, Database*, int desc);
 void SetQuery(Query* query, webapp_str_t* in);
 void BindParameter(Query* query, webapp_str_t* in);
 int SelectQuery(Query* query);
+long long ExecString(void* db, webapp_str_t* in);
+
+//Filesystem Functions
+typedef struct {
+  webapp_str_t name;
+  webapp_str_t flags;
+} File;
+
+File* OpenFile(webapp_str_t* filename, webapp_str_t* mode);
+void CloseFile(File* f);
+void ReadFile(File* f, webapp_str_t* out);
+void WriteFile(File* f, webapp_str_t* buf);
+long long FileSize(File* f);
+void CleanupFile(File* f);
 ]]
 --Globals provided to this file: app, sessions, requests, templates
 c = ffi.C
@@ -180,7 +208,7 @@ function getPage(uri_str, session, request)
 	
 	local page_full = page .. ".html"
 	
-	local template = c.GetTemplate(app, request)
+	local template = c.Template_Get(app, request)
 	if template ~= nil then
 		-- Template process code.
 		local handleTemplate = handlers.handleTemplate
@@ -189,7 +217,7 @@ function getPage(uri_str, session, request)
 			if not status then print(err) end
 		end
 		-- End template process code.
-		c.RenderTemplate(templates, template, common.cstr(page_full), request, common.wstr)
+		c.Template_Render(templates, template, common.cstr(page_full), request, common.wstr)
 		local content = common.appstr()
 		if content then
 			response = HTML_HEADER .. CONTENT_LEN_HEADER(string.len(content)) .. END_HEADER .. content

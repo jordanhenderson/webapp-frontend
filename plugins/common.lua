@@ -1,6 +1,35 @@
 local ffi = require("ffi")
 ffi.cdef[[
-typedef struct { const char* data; long long len; } webapp_str_t;
+typedef struct { 
+  const char* data; 
+  long long len; 
+} webapp_str_t;
+
+//Filesystem API
+typedef struct {
+  char path[4096];
+  int has_next;
+  int n_files;
+  void* _files;
+  void* _h;
+  void* _f;
+  void* _d;
+  void* _e;
+} Directory;
+
+typedef struct {
+  char path[4096];
+  char name[256];
+  int is_dir;
+  int is_reg;
+  void* _s;
+} DirFile;
+
+int tinydir_open(Directory*, const char* path);
+int tinydir_open_sorted(Directory*, const char* path);
+void tinydir_close(Directory*);
+int tinydir_next(Directory*);
+int tinydir_readfile(Directory*, DirFile*);
 ]]
 c = ffi.C
 
@@ -71,6 +100,34 @@ M.tohex = function(s, upper)
 		  return string.format('%02x', string.byte(c))
 		end))
 	end
+end
+
+M.endsWith = function(s, send)
+return #s >= #send and s:find(send, #s-#send+1, true) and true or false
+end
+
+iterdir = function(base, path, recurse)
+	local dir = ffi.new("Directory")
+	local start_dir = base .. '/' .. path
+	c.tinydir_open(dir, start_dir)
+	while dir.has_next == 1 do
+		local file = ffi.new("DirFile")
+		c.tinydir_readfile(dir, file)
+		local pstr = ffi.string(file.name)
+		local dir_path = path:len() == 0 and pstr or path .. '/' .. pstr
+		if file.name[0] ~= 46 then
+			coroutine.yield(dir_path, file.is_dir)
+			if recurse == 1 then
+				iterdir(base, dir_path, 1)
+			end
+		end
+		c.tinydir_next(dir)
+	end
+	c.tinydir_close(dir)
+end
+
+M.iterdir = function(base, path, recurse)
+	return coroutine.wrap(function () iterdir(base, path, recurse) end)
 end
 
 return M
