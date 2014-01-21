@@ -267,8 +267,8 @@ while request ~= nil do
 		session = c.GetSession(sessions, sessionid)
 
 	end
-	--Create final with two spaces (enough space for the length integer stored by the backend.).
-	local final = "  " 
+	--Create enough space for a 32 bit number.	
+	local final = "    "
 	local cookie = ""
 	if session == nil then
 		-- Create a new session. Needs refinement to prevent spamming.
