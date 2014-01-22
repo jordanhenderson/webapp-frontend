@@ -5,17 +5,17 @@ local ffi = require("ffi")
 ffi.cdef[[
 //Struct definitions
 typedef struct {
-  const char* data; 
+  const char* data;
   long long len;
 } webapp_str_t;
 typedef struct {
   int status; 
-  long long lastrowid; 
-  int column_count; 
-  webapp_str_t* row; 
-  webapp_str_t* desc; 
-  int need_desc; 
-  int have_desc; 
+  long long lastrowid;
+  int column_count;
+  webapp_str_t* row;
+  webapp_str_t* desc;
+  int need_desc;
+  int have_desc;
   int rows_affected;
 } Query;
 typedef struct {
@@ -64,11 +64,12 @@ long long ExecString(void* db, webapp_str_t* in);
 typedef struct {
   webapp_str_t name;
   webapp_str_t flags;
+  webapp_str_t buffer;
 } File;
 
 File* OpenFile(webapp_str_t* filename, webapp_str_t* mode);
 void CloseFile(File* f);
-void ReadFile(File* f, webapp_str_t* out);
+uint16_t ReadFile(File* f, uint16_t n_bytes);
 void WriteFile(File* f, webapp_str_t* buf);
 long long FileSize(File* f);
 void CleanupFile(File* f);
