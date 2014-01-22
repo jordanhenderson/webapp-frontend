@@ -267,8 +267,7 @@ while request ~= nil do
 		session = c.GetSession(sessions, sessionid)
 
 	end
-	--Create enough space for a 32 bit number.	
-	local final = "    "
+	
 	local cookie = ""
 	if session == nil then
 		-- Create a new session. Needs refinement to prevent spamming.
@@ -301,6 +300,7 @@ while request ~= nil do
 		response = getPage(request.uri, session, request)
 	end
 	
+	local final = ""
 	if string.len(response) > 0 then
 		final = final .. HTTP_200 .. cookie .. response
 		else
