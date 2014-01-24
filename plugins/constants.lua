@@ -37,15 +37,6 @@ SQL_SESSION(db_type),
 @def SELECT_USER_LOGIN @join("SELECT ", COLS_USER_LOGIN, " FROM users WHERE user = ?;")
 @def SELECT_USER @join("SELECT ", COLS_USER, " FROM users WHERE id = ?;")
 
---HTTP Header macros
-@def END_HEADER "\r\n"
-@def HTML_HEADER @join("Content-type: text/html", END_HEADER)
-@def HTTP_200 @join("HTTP/1.1 200 OK", END_HEADER)
-@def HTTP_404 @join("HTTP/1.1 404 Not Found", END_HEADER)
-@def JSON_HEADER @join("Content-type: application/json", END_HEADER)
-@def CONTENT_LEN_HEADER(len) "Content-Length: " .. len .. END_HEADER
-@def DISABLE_CACHE_HEADER @join("Cache-Control: no-cache, no-store, must-revalidate", END_HEADER, "Pragma: no-cache", END_HEADER, "Expires: 0", END_HEADER)
-
 function SQL_CONCAT(db_type, ...)
 	local n = select("#", ...)
 	if n < 1 then

@@ -431,7 +431,7 @@ function M.toddate(x) T_int64_str(x)
 end
 
 ffi.cdef[[
-unsigned long long GetWebappTime();
+uint64_t GetWebappTime();
 ]]
 
 c = ffi.C

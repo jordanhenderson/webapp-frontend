@@ -6,11 +6,12 @@ ffi.cdef[[
 //Struct definitions
 typedef struct {
   const char* data;
-  long long len;
+  uint32_t len;
+  int allocated;
 } webapp_str_t;
 typedef struct {
   int status; 
-  long long lastrowid;
+  uint64_t lastrowid;
   int column_count;
   webapp_str_t* row;
   webapp_str_t* desc;
@@ -44,13 +45,16 @@ void* NewSession(void*, Request*);
 int GetSessionID(void*, webapp_str_t* out);
 
 //Template Functions
-void Template_Render(void*, void*, webapp_str_t*, Request*, webapp_str_t* out);
+void Template_Render(void*, void*, webapp_str_t*, Request*, 
+	webapp_str_t* out);
 void* Template_Get(void*, Request*);
 
 //Request Functions
 void FinishRequest(Request*);
 Request* GetNextRequest(void* requests);
-void WriteData(void* socket, webapp_str_t* data);
+void WriteData(void* request, webapp_str_t* data);
+void WriteHeader(void* request, uint32_t bytes, 
+	webapp_str_t* content_type, webapp_str_t* cookies);
 
 //Database Functions
 Database* GetDatabase(void* app, size_t index);
@@ -58,7 +62,7 @@ Query* CreateQuery(webapp_str_t* in, Request*, Database*, int desc);
 void SetQuery(Query* query, webapp_str_t* in);
 void BindParameter(Query* query, webapp_str_t* in);
 int SelectQuery(Query* query);
-long long ExecString(void* db, webapp_str_t* in);
+uint64_t ExecString(void* db, webapp_str_t* in);
 
 //Filesystem Functions
 typedef struct {
@@ -71,7 +75,7 @@ File* OpenFile(webapp_str_t* filename, webapp_str_t* mode);
 void CloseFile(File* f);
 uint16_t ReadFile(File* f, uint16_t n_bytes);
 void WriteFile(File* f, webapp_str_t* buf);
-long long FileSize(File* f);
+uint64_t FileSize(File* f);
 void CleanupFile(File* f);
 ]]
 --Globals provided to this file: app, sessions, requests, templates
@@ -141,7 +145,7 @@ function gen_cookie(name, value, days)
 	local h, mins, s = t:period():parts()
 	local day = daystr(t:weekday())
 	local month = monthstr(m)
-	local out = string.format("Set-Cookie: %s=%s; Expires=%s, %02i %s %i %02i:%02i:%02i GMT \r\n", 
+	local out = string.format("%s=%s; Expires=%s, %02i %s %i %02i:%02i:%02i GMT", 
 		name, value, day, d, month, year, h, mins, s)
 	return out
 end
@@ -193,10 +197,13 @@ function getPage(uri_str, session, request)
 	local response = ""
 	local page = ""
 	local uri = uri_str.data
-	local uristr = common.appstr(uri_str)
-	if uri[0] == 47 --[[/]] and (uri[1] == 0 or uri[1] == 63 --[[?]]) then
+	
+	if (uri[0] == 47 --[[/]] and
+		uri_str.len == 1)
+		or (uri_str.len >= 2 and uri[1] == 63 --[[?]]) then
 		page = "index"
 	else
+		local uristr = common.appstr(uri_str)
 		local f = find_first_of(uristr, "?#&")
 		page = string.sub(uristr, math.min(2, string.len(uristr)), f)
 	end
@@ -221,7 +228,7 @@ function getPage(uri_str, session, request)
 		c.Template_Render(templates, template, common.cstr(page_full), request, common.wstr)
 		local content = common.appstr()
 		if content then
-			response = HTML_HEADER .. CONTENT_LEN_HEADER(string.len(content)) .. END_HEADER .. content
+			response = content
 		end
 	end
 	return response
@@ -250,36 +257,33 @@ function processAPI(params_str, session, request)
 		tmp_response = "{}"
 	end
 	
-	return JSON_HEADER .. CONTENT_LEN_HEADER(string.len(tmp_response)) .. END_HEADER .. tmp_response
+	return tmp_response
 end
 
 math.randomseed(os.time())
 
 request = c.GetNextRequest(requests)
-
 while request ~= nil do 
 	local method = request.method
 	local cookies = request.cookies
-	
 	local sessionid = common.cstr(get_cookie_val(cookies, "sessionid"))
 	local session
 	
 	if sessionid ~= nil then
 		session = c.GetSession(sessions, sessionid)
-
 	end
 	
 	local cookie = ""
 	if session == nil then
-		-- Create a new session. Needs refinement to prevent spamming.
 		session = c.NewSession(sessions, request)
 		if session ~= nil then -- Session created?
 			local newsession = c.GetSessionID(session, common.wstr)
 			cookie = gen_cookie("sessionid", common.appstr(), 7)
 		end
 	end
-	
+
 	local response = ""
+	local content_type = "text/html"
 	local uri_len = tonumber(request.uri.len)
 	if uri_len > 3
 		and request.uri.data[1] == 97 -- a
@@ -287,6 +291,7 @@ while request ~= nil do
 		and request.uri.data[3] == 105 -- i
 		and request.uri.data[0] == 47 -- / (check last - just in case.)
 	then
+		content_type = "application/json"
 		if method == 2 and uri_len > 6 then 
 			local uri = common.wstr
 			uri.data = request.uri.data + 5
@@ -300,15 +305,10 @@ while request ~= nil do
 	elseif uri_len >= 1 then
 		response = getPage(request.uri, session, request)
 	end
-	
-	local final = ""
-	if string.len(response) > 0 then
-		final = final .. HTTP_200 .. cookie .. response
-		else
-		final = final .. HTTP_404 .. cookie .. HTML_HEADER .. CONTENT_LEN_HEADER(0) .. END_HEADER
-	end
 
-	c.WriteData(request.socket, common.cstr(final))
+	c.WriteHeader(request, response:len(), 
+		common.cstr(content_type), common.cstr(cookie, 1))
+	c.WriteData(request, common.cstr(response))
 	c.FinishRequest(request)
 
 	request = c.GetNextRequest(requests)

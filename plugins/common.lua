@@ -2,7 +2,8 @@ local ffi = require("ffi")
 ffi.cdef[[
 typedef struct { 
   const char* data; 
-  long long len; 
+  uint32_t len; 
+  int allocated;
 } webapp_str_t;
 
 //Filesystem API

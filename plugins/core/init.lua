@@ -2,11 +2,12 @@ local ffi = require("ffi")
 ffi.cdef[[
 typedef struct {
   const char* data; 
-  int len; 
+  uint32_t len;
+  int allocated; 
 } webapp_str_t;
 typedef struct {
   int status; 
-  long long lastrowid; 
+  uint64_t lastrowid; 
   int column_count; 
   webapp_str_t* row; 
   webapp_str_t* desc; 
@@ -38,7 +39,7 @@ Query* CreateQuery(webapp_str_t* in, Request*, Database*, int desc);
 void SetQuery(Query* query, webapp_str_t* in);
 void BindParameter(Query* query, webapp_str_t* in);
 int SelectQuery(Query* query);
-long long ExecString(void* db, webapp_str_t* in);
+uint64_t ExecString(void* db, webapp_str_t* in);
 int ConnectDatabase(Database* db, int database_type, const char* host, const char* username, const char* password, const char* database);
 Database* CreateDatabase(void* app);
 
@@ -68,7 +69,7 @@ c.SetParamInt(app, WEBAPP_PARAM_PORT, 5000)
 
 c.Template_ReloadAll()
 for file, dir in common.iterdir("content/", "", 1) do
-	if dir == 0 and common.endsWith(file, ".html") then 
+	if dir == 0 and common.endsWith(file, ".html") then
 		c.Template_Load(common.cstr("content/" .. file))
 	end
 end
