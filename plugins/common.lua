@@ -104,7 +104,7 @@ M.tohex = function(s, upper)
 end
 
 M.endsWith = function(s, send)
-return #s >= #send and s:find(send, #s-#send+1, true) and true or false
+	return #s >= #send and s:find(send, #s-#send+1, true) and true or false
 end
 
 iterdir = function(base, path, recurse)
@@ -129,6 +129,19 @@ end
 
 M.iterdir = function(base, path, recurse)
 	return coroutine.wrap(function () iterdir(base, path, recurse) end)
+end
+
+M.find_first_of = function(str, chars)
+	local foundpos = string.len(str) + 1
+	for i = 1, string.len(chars) do
+		local c = string.sub(chars, i, i)
+		local f = string.find(str, c)
+		if f and f <= foundpos then
+			foundpos = f
+		end
+		
+	end
+	return foundpos
 end
 
 return M

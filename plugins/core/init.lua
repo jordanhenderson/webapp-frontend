@@ -48,7 +48,7 @@ void SetParamInt(void* app, unsigned int param, int value);
 void GetParamInt(void* app, unsigned int param);
 void Template_ReloadAll();
 void Template_Load(webapp_str_t* page);
-
+void Template_Include(void* app, webapp_str_t* name, webapp_str_t* file);
 ]]
 --Globals provided to this file: app
 c = ffi.C
@@ -66,11 +66,20 @@ end
 
 handlers.updateUser[2](@join("user=admin&pass=admin&auth=", AUTH_ADMIN), nil, nil, AUTH_ADMIN)
 c.SetParamInt(app, WEBAPP_PARAM_PORT, 5000)
-
 c.Template_ReloadAll()
 for file, dir in common.iterdir("content/", "", 1) do
 	if dir == 0 and common.endsWith(file, ".html") then
 		c.Template_Load(common.cstr("content/" .. file))
+	end
+end
+
+for file, dir in common.iterdir("templates/", "", 1) do
+	if dir == 0 then
+		local f_upper = file:upper()
+		if common.endsWith(f_upper, ".TPL") then
+			f_upper = "T_" .. f_upper:sub(1, -5)
+			c.Template_Include(app, common.cstr(f_upper), common.cstr("templates/" .. file, 1))
+		end
 	end
 end
 

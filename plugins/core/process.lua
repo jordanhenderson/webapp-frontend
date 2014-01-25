@@ -150,19 +150,6 @@ function gen_cookie(name, value, days)
 	return out
 end
 
-function find_first_of(str, chars)
-	local foundpos = string.len(str) 
-	for i = 1, string.len(chars) do
-		local c = string.sub(chars, i, i)
-		local f = string.find(str, c)
-		if f and f <= foundpos then
-			foundpos = f - 1
-		end
-		
-	end
-	return foundpos
-end
-
 function get_cookie_val(cookies, key)
 	if cookies.data == nil then
 		return nil
@@ -204,7 +191,7 @@ function getPage(uri_str, session, request)
 		page = "index"
 	else
 		local uristr = common.appstr(uri_str)
-		local f = find_first_of(uristr, "?#&")
+		local f = common.find_first_of(uristr, "?#&") - 1
 		page = string.sub(uristr, math.min(2, string.len(uristr)), f)
 	end
 	
