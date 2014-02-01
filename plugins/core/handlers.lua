@@ -165,9 +165,12 @@ function clearCache(vars, session)
 end
 
 function handleTemplate(template, page, session, user, auth)
-	--[[TODO: Place template logic here. Use calls similar to the following:
+	--TODO: Place further template logic here.
+	if auth == AUTH_GUEST then
 		c.Template_ShowGlobalSection(template, common.cstr("NOT_LOGGED_IN"))
-		c.Template_ShowGlobalSection(template, common.cstr("LOGGED_IN")) --]]
+	else
+		c.Template_ShowGlobalSection(template, common.cstr("LOGGED_IN"))
+	end
 end
 
 handlers = {
