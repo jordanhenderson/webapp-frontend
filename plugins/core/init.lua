@@ -49,7 +49,6 @@ void GetParamInt(void* app, unsigned int param);
 void Template_Load(webapp_str_t* page);
 void Template_Include(void* app, webapp_str_t* name, webapp_str_t* file);
 ]]
---Globals provided to this file: app
 c = ffi.C
 @include 'plugins/constants.lua'
 common = require "common"

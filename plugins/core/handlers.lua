@@ -5,23 +5,27 @@ typedef struct {
   uint32_t len; 
   int allocated;
 } webapp_str_t;
-int QueueProcess(void* app, webapp_str_t* func, webapp_str_t* vars);
-void ClearCache(void* app, void* requests);
+int QueueProcess(void* worker, webapp_str_t* func, webapp_str_t* vars);
+void ClearCache(void* worker);
 void DestroySession(void* session);
-int Template_ShowGlobalSection(void*, webapp_str_t*);
-int Template_SetGlobalValue(void*, webapp_str_t* key, webapp_str_t* value);
+void Template_ShowGlobalSection(void*, webapp_str_t*);
+void Template_SetGlobalValue(void*, webapp_str_t* key, webapp_str_t* value);
+void Template_SetValue(void*, webapp_str_t* key, webapp_str_t* value);
+void* Template_Get(void*, webapp_str_t*);
 ]]
+c = ffi.C
+
+@include 'plugins/constants.lua'
 
 local sha2 = require "sha2"
 local time = require "time"
-@include 'plugins/constants.lua'
-c = ffi.C
 
 --[[NOTES
 common.wstr[2] provides user id. Do not write over [2] in order to preserve id.
 --]]
 
 @def USERID common.appstr(common.wstr[2])
+local common = require "common"
 
 function hashPassword(password, salt)
 	local pass --hashed password.
@@ -160,7 +164,7 @@ function updateUser(vars, session, user, auth)
 end
 
 function clearCache(vars, session)
-	c.ClearCache(app, requests)
+	c.ClearCache(worker)
 	return MESSAGE("CACHE_CLEARED")
 end
 

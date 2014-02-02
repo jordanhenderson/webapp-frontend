@@ -45,9 +45,8 @@ void* NewSession(void*, Request*);
 int GetSessionID(void*, webapp_str_t* out);
 
 //Template Functions
-void Template_Render(void*, void*, webapp_str_t*, Request*, 
-	webapp_str_t* out);
-void* Template_Get(void*, Request*);
+void Template_Render(void*, webapp_str_t*, Request*, webapp_str_t* out);
+void* Template_Get(void*, webapp_str_t*);
 
 //Request Functions
 void FinishRequest(Request*);
@@ -57,7 +56,7 @@ void WriteHeader(void* request, uint32_t bytes,
 	webapp_str_t* content_type, webapp_str_t* cookies);
 
 //Database Functions
-Database* GetDatabase(void* app, size_t index);
+Database* GetDatabase(void*, size_t index);
 Query* CreateQuery(webapp_str_t* in, Request*, Database*, int desc);
 void SetQuery(Query* query, webapp_str_t* in);
 void BindParameter(Query* query, webapp_str_t* in);
@@ -78,15 +77,17 @@ void WriteFile(File* f, webapp_str_t* buf);
 uint64_t FileSize(File* f);
 void CleanupFile(File* f);
 ]]
---Globals provided to this file: app, sessions, requests, templates
 c = ffi.C
 db = c.GetDatabase(app, 0)
 
 handlers, page_security = load_handlers()
-common = require "common"
-time = require "time"
 
 @include "plugins/constants.lua"
+
+local common = require "common"
+local time = require "time"
+
+base_template = c.Template_Get(worker, nil)
 
 function daystr(day)
 	if day == 1 then
@@ -203,16 +204,15 @@ function getPage(uri_str, session, request)
 	
 	local page_full = page .. ".html"
 	
-	local template = c.Template_Get(app, request)
-	if template ~= nil then
+	if base_template ~= nil then
 		-- Template process code.
 		local handleTemplate = handlers.handleTemplate
 		if handleTemplate ~= nil then
-			local status, err = pcall(handleTemplate[2], template, page, session, user, auth)
+			local status, err = pcall(handleTemplate[2], base_template, page, session, user, auth)
 			if not status then print(err) end
 		end
 		-- End template process code.
-		c.Template_Render(templates, template, common.cstr(page_full), request, common.wstr)
+		c.Template_Render(worker, common.cstr(page_full), request, common.wstr)
 		local content = common.appstr()
 		if content then
 			response = content
@@ -249,7 +249,7 @@ end
 
 math.randomseed(os.time())
 
-request = c.GetNextRequest(requests)
+request = c.GetNextRequest(worker)
 while request ~= nil do 
 	local method = request.method
 	local cookies = request.cookies
@@ -257,12 +257,12 @@ while request ~= nil do
 	local session
 	
 	if sessionid ~= nil then
-		session = c.GetSession(sessions, sessionid)
+		session = c.GetSession(worker, sessionid)
 	end
 	
 	local cookie = ""
 	if session == nil then
-		session = c.NewSession(sessions, request)
+		session = c.NewSession(worker, request)
 		if session ~= nil then -- Session created?
 			local newsession = c.GetSessionID(session, common.wstr)
 			cookie = gen_cookie("sessionid", common.appstr(), 7)
@@ -298,5 +298,5 @@ while request ~= nil do
 	c.WriteData(request, common.cstr(response))
 	c.FinishRequest(request)
 
-	request = c.GetNextRequest(requests)
+	request = c.GetNextRequest(worker)
 end
