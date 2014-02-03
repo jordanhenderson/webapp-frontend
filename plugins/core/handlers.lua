@@ -11,6 +11,7 @@ void DestroySession(void* session);
 void Template_ShowGlobalSection(void*, webapp_str_t*);
 void Template_SetGlobalValue(void*, webapp_str_t* key, webapp_str_t* value);
 void Template_SetValue(void*, webapp_str_t* key, webapp_str_t* value);
+void Template_SetIntValue(void*, webapp_str_t* key, long value);
 void* Template_Get(void*, webapp_str_t*);
 void Template_Clear(void*);
 ]]
