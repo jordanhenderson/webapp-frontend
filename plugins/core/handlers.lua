@@ -12,6 +12,7 @@ void Template_ShowGlobalSection(void*, webapp_str_t*);
 void Template_SetGlobalValue(void*, webapp_str_t* key, webapp_str_t* value);
 void Template_SetValue(void*, webapp_str_t* key, webapp_str_t* value);
 void* Template_Get(void*, webapp_str_t*);
+void Template_Clear(void*);
 ]]
 c = ffi.C
 
@@ -170,6 +171,7 @@ end
 
 function handleTemplate(template, page, session, user, auth)
 	--TODO: Place further template logic here.
+	c.Template_Clear(template)
 	if auth == AUTH_GUEST then
 		c.Template_ShowGlobalSection(template, common.cstr("NOT_LOGGED_IN"))
 	else
