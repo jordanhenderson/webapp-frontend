@@ -55,6 +55,9 @@ function gensql(query, query_type, tbl, cond, validcols, ...)
 			end
 		end
 		set = set:sub(0, #set - 1)
+		if tbl:len() == 0 then
+			return ""
+		end
 		return "UPDATE " .. tbl .. " SET " .. set .. " WHERE " .. cond .. "=?;"
 	elseif query_type == QUERY_TYPE_INSERT then
 		local vs = ""

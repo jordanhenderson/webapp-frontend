@@ -53,7 +53,7 @@ void FinishRequest(Request*);
 Request* GetNextRequest(void* requests);
 void WriteData(void* request, webapp_str_t* data);
 void WriteHeader(void* request, uint32_t bytes, 
-	webapp_str_t* content_type, webapp_str_t* cookies);
+	webapp_str_t* content_type, webapp_str_t* cookies, int8_t cache);
 
 //Database Functions
 Database* GetDatabase(void*, size_t index);
@@ -272,6 +272,7 @@ while request ~= nil do
 	local response = ""
 	local content_type = "text/html"
 	local uri_len = tonumber(request.uri.len)
+	local cache = 0
 	if uri_len > 3
 		and request.uri.data[1] == 97 -- a
 		and request.uri.data[2] == 112 -- p
@@ -290,11 +291,12 @@ while request ~= nil do
 			response = processAPI(params, session, request)
 		end
 	elseif uri_len >= 1 then
+		cache = 1
 		response = getPage(request.uri, session, request)
 	end
 
 	c.WriteHeader(request, response:len(), 
-		common.cstr(content_type), common.cstr(cookie, 1))
+		common.cstr(content_type), common.cstr(cookie, 1), cache)
 	c.WriteData(request, common.cstr(response))
 	c.FinishRequest(request)
 
