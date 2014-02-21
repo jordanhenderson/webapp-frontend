@@ -221,15 +221,14 @@ function getPage(uri_str, session, request)
 	return response
 end
 
-function processAPI(params_str, session, request)
+function processAPI(params, session, request)
 	local tmp_response = "{}"
-	local func_str = common.get_function(params_str)
-	local func = handlers[func_str]
-
+	local func_str = params.t
+	local func = handlers[type(func_str) == "string" and func_str]
 	local user = getUser(session)
 	local auth = tonumber(user and common.appstr(user[@col(COLS_USER, "auth")]) or AUTH_GUEST)
 	if func ~= nil and auth >= func[1] then
-		local ret, call_str = pcall(func[2], params_str, session, user, auth)
+		local ret, call_str = pcall(func[2], params, session, user, auth)
 		if ret and call_str ~= nil then
 			tmp_response = call_str
 		else
@@ -255,7 +254,6 @@ while request ~= nil do
 	local cookies = request.cookies
 	local sessionid = common.cstr(get_cookie_val(cookies, "sessionid"))
 	local session
-	
 	if sessionid ~= nil then
 		session = c.GetSession(worker, sessionid)
 	end
@@ -280,16 +278,8 @@ while request ~= nil do
 		and request.uri.data[0] == 47 -- / (check last - just in case.)
 	then
 		content_type = "application/json"
-		if method == 2 and uri_len > 6 then 
-			local uri = common.wstr
-			uri.data = request.uri.data + 5
-			uri.len = uri_len - 5
-			uri = common.appstr()
-			response = processAPI(uri, session, request)
-		elseif method == 8 then
-			local params = common.appstr(request.request_body)
-			response = processAPI(params, session, request)
-		end
+		local ret, params = pcall(cjson.decode, common.appstr(request.request_body))
+		response = ret and processAPI(params,session,request) or "{}"
 	elseif uri_len >= 1 then
 		cache = 1
 		response = getPage(request.uri, session, request)

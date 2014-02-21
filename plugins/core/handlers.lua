@@ -97,8 +97,7 @@ function dump_query(query)
 	return data
 end
 
-function login(vars, session)
-	local v = common.get_parameters(vars)
+function login(v, session)
 	local password = v.pass
 	local query = c.CreateQuery(common.cstr(SELECT_USER_LOGIN), request, db, 0)
 	c.BindParameter(query, common.cstr(v.user))
@@ -126,8 +125,7 @@ function logout(vars, session)
 	return _MESSAGE("LOGOUT_SUCCESS", 1)
 end
 
-function updateUser(vars, session, user, auth)
-	local v = common.get_parameters(vars)
+function updateUser(v, session, user, auth)
 	--Input variables.
 	local id = v.id
 	local target_user = v.user

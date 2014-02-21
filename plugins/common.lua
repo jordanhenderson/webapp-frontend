@@ -71,23 +71,6 @@ M.unescape = function(str)
 	return str
 end
 
-M.get_parameters = function(params)
-	local p = {}
-	for i,k in params:gmatch("([^&=]+)=([^&=]+)") do
-		p[M.unescape(i)] = M.unescape(k)
-	end
-	
-	return p
-end
-
-M.get_function = function(params)
-	local f = ""
-	local m = params:gmatch("t=([^&=]+)")
-	for i in m do
-		return i
-	end
-end
-
 M.tohex = function(s, upper)
 	if type(s) == 'number' then
 		return string.format(upper and '%08.8X' or '%08.8x', s)
