@@ -62,7 +62,7 @@ for k,v in ipairs(CREATE_DATABASE(DATABASE_TYPE_SQLITE)) do
 	c.ExecString(db, common.cstr(v))
 end
 
-handlers.updateUser[2](@join("user=admin&pass=admin&auth=", AUTH_ADMIN), nil, nil, AUTH_ADMIN)
+handlers.updateUser[2]({user="admin",pass="admin",auth=_STR_(AUTH_ADMIN)}, nil, nil, AUTH_ADMIN)
 c.SetParamInt(app, WEBAPP_PARAM_PORT, 5000)
 for file, dir in common.iterdir("content/", "", 1) do
 	if dir == 0 and common.endsWith(file, ".html") then
