@@ -80,4 +80,5 @@ for file, dir in common.iterdir("templates/", "", 1) do
 	end
 end
 
--- Disable background queue (long running operations): c.SetParamInt(app, WEBAPP_PARAM_BGQUEUE, 0);
+-- Disable background queue (long running operations): c.SetParamInt(app, WEBAPP_PARAM_BGQUEUE, 0)
+-- Enable/Disable template caching (for debug purposes): c.SetParamInt(app, WEBAPP_PARAM_TPLCACHE, 0)

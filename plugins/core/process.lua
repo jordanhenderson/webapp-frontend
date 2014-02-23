@@ -56,7 +56,7 @@ void WriteHeader(void* request, uint32_t bytes,
 	webapp_str_t* content_type, webapp_str_t* cookies, int8_t cache);
 
 //Database Functions
-Database* GetDatabase(void*, size_t index);
+Database* GetDatabase(void* app, size_t index);
 Query* CreateQuery(webapp_str_t* in, Request*, Database*, int desc);
 void SetQuery(Query* query, webapp_str_t* in);
 void BindParameter(Query* query, webapp_str_t* in);

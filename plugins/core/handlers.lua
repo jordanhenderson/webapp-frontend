@@ -7,6 +7,7 @@ typedef struct {
 } webapp_str_t;
 int QueueProcess(void* worker, webapp_str_t* func, webapp_str_t* vars);
 void ClearCache(void* worker);
+void Shutdown(void* worker);
 void DestroySession(void* session);
 void Template_ShowGlobalSection(void*, webapp_str_t*);
 void Template_SetGlobalValue(void*, webapp_str_t* key, webapp_str_t* value);
@@ -171,6 +172,11 @@ function clearCache(vars, session)
 	return MESSAGE("CACHE_CLEARED")
 end
 
+function shutdown(vars, session)
+	c.Shutdown(worker)
+	return MESSAGE("SHUTTING_DOWN")
+end
+
 function handleTemplate(template, page, session, user, auth)
 	--TODO: Place further template logic here.
 	c.Template_Clear(template)
@@ -187,7 +193,9 @@ handlers = {
 --Logout
 	logout = {AUTH_USER, logout},
 --Clear any cached data.
-	clearCache = {AUTH_USER, clearCache},
+	clearCache = {AUTH_ADMIN, clearCache},
+--Shut down the server.
+	shutdown = {AUTH_ADMIN, shutdown},
 --Render a content template.
 	handleTemplate = {AUTH_GUEST, handleTemplate},
 --Update the current user (AUTH_USER) or a specific user.
