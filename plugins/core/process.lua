@@ -70,12 +70,11 @@ typedef struct {
   webapp_str_t buffer;
 } File;
 
-File* OpenFile(webapp_str_t* filename, webapp_str_t* mode);
-void CloseFile(File* f);
-uint16_t ReadFile(File* f, uint16_t n_bytes);
-void WriteFile(File* f, webapp_str_t* buf);
-uint64_t FileSize(File* f);
-void CleanupFile(File* f);
+File* File_Open(webapp_str_t* filename, webapp_str_t* mode);
+void File_Close(File* f);
+uint16_t File_Read(File* f, uint16_t n_bytes);
+void File_Write(File* f, webapp_str_t* buf);
+uint64_t File_Size(File* f);
 ]]
 c = ffi.C
 db = c.GetDatabase(app, 0)
