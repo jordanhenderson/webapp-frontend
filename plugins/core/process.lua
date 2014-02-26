@@ -40,7 +40,7 @@ typedef struct {
 //Session Functions
 int GetSessionValue(void*, webapp_str_t* key, webapp_str_t* out);
 int SetSessionValue(void*, webapp_str_t* key, webapp_str_t* val);
-void* GetSession(void*, webapp_str_t*);
+void* GetSession(void*, Request*);
 void* NewSession(void*, Request*);
 int GetSessionID(void*, webapp_str_t* out);
 
@@ -150,22 +150,6 @@ function gen_cookie(name, value, days)
 	return out
 end
 
-function get_cookie_val(cookies, key)
-	if cookies.data == nil then
-		return nil
-	else
-		cookies = common.appstr(cookies)
-	end
-
-	local m = cookies:gmatch("(%w+)=(%w+)")
-	for i,k in m do
-		if i == key then
-			return k
-		end
-	end
-	return nil
-end
-
 function getUser(session) 
 	 --use wstr[2] to keep userid for API functions
 	if c.GetSessionValue(session, common.cstr("userid"), common.wstr[2]) ~= 0 then
@@ -250,12 +234,7 @@ math.randomseed(os.time())
 request = c.GetNextRequest(worker)
 while request ~= nil do 
 	local method = request.method
-	local cookies = request.cookies
-	local sessionid = common.cstr(get_cookie_val(cookies, "sessionid"))
-	local session
-	if sessionid ~= nil then
-		session = c.GetSession(worker, sessionid)
-	end
+	local session = c.GetSession(worker, request)
 	
 	local cookie = ""
 	if session == nil then
