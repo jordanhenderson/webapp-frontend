@@ -23,6 +23,12 @@ SQL_SESSION(db_type),
 @def WEBAPP_PARAM_ABORTED 1
 @def WEBAPP_PARAM_BGQUEUE 2
 @def WEBAPP_PARAM_TPLCACHE 3
+--[[ 
+Session node placeholder is replaced by nginx with the actual server node.
+Define this to match the size of the macro SESSION_NODE_SIZE in Session.h.
+For example, for SESSION_NODE_SIZE of 2, use "XX" here.
+--]]
+@def SESSION_NODE_PLACEHOLDER "X"
 
 @def QUERY_TYPE_INSERT 0
 @def QUERY_TYPE_UPDATE 1

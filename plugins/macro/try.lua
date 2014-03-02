@@ -39,7 +39,7 @@ M.define('RR_',M.make_scoped_handler('return',check_return_value))
 --     try
 --      maybe_something_bad()
 --     except (e)
---      print(e)
+--      io.write(e)
 --     end
 -- @macro try
 M.define 'try do local r_ =  pcall_(function() RR_ '

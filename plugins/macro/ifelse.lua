@@ -32,19 +32,19 @@ end
 
 M.define('@',function(get,put)
     local t,v = get()
---~     print('got',t,v)
+--~     io.write('got',t,v)
     return put:name(v..'_')
 end)
 
 local ifstack,push,pop = {},table.insert,table.remove
 
 local function push_if (res)
---~     print 'push'
+--~     io.write 'push'
     push(ifstack, not (res==false or res==nil))
 end
 
 local function pop_if ()
---~     print 'pop'
+--~     io.write 'pop'
     pop(ifstack)
 end
 

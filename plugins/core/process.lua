@@ -89,19 +89,19 @@ local time = require "time"
 base_template = c.Template_Get(worker, nil)
 
 function daystr(day)
-	if day == 1 then
+	if day == 0 then
 		return "Mon" 
-	elseif day == 2 then
+	elseif day == 1 then
 		return "Tue" 
-	elseif day == 3 then
+	elseif day == 2 then
 		return "Wed" 
-	elseif day == 4 then
+	elseif day == 3 then
 		return "Thu" 
-	elseif day == 5 then
+	elseif day == 4 then
 		return "Fri" 
-	elseif day == 6 then
+	elseif day == 5 then
 		return "Sat" 
-	elseif day == 7 then
+	elseif day == 6 then
 		return "Sun" 
 	else
 		return ""
@@ -109,29 +109,29 @@ function daystr(day)
 end
 
 function monthstr(month)
-	if month == 1 then
+	if month == 0 then
 		return "Jan"
-	elseif month == 2 then
+	elseif month == 1 then
 		return "Feb"
-	elseif month == 3 then
+	elseif month == 2 then
 		return "Mar"
-	elseif month == 4 then
+	elseif month == 3 then
 		return "Apr"
-	elseif month == 5 then
+	elseif month == 4 then
 		return "May"
-	elseif month == 6 then
+	elseif month == 5 then
 		return "Jun"
-	elseif month == 7 then
+	elseif month == 6 then
 		return "Jul"
-	elseif month == 8 then
+	elseif month == 7 then
 		return "Aug"
-	elseif month == 9 then
+	elseif month == 8 then
 		return "Sep"
-	elseif month == 10 then
+	elseif month == 9 then
 		return "Oct"
-	elseif month == 11 then
+	elseif month == 10 then
 		return "Nov"
-	elseif month == 12 then
+	elseif month == 11 then
 		return "Dec"
 	else
 		return ""
@@ -140,9 +140,11 @@ end
 
 function gen_cookie(name, value, days)
 	local t = time.nowutc()
-	t = t + time.days(days)
+	t:add_days(7)
 	local year, m, d = t:ymd()
-	local h, mins, s = t:period():parts()
+	print(year,m,d)
+	local h, mins, s = t:hms()
+	print(h,mins,s)
 	local day = daystr(t:weekday())
 	local month = monthstr(m)
 	local out = string.format("%s=%s; Expires=%s, %02i %s %i %02i:%02i:%02i GMT", 
@@ -186,13 +188,12 @@ function getPage(uri_str, session, request)
 	end
 	
 	local page_full = page .. ".html"
-	
 	if base_template ~= nil then
 		-- Template process code.
 		local handleTemplate = handlers.handleTemplate
 		if handleTemplate ~= nil then
 			local status, err = pcall(handleTemplate[2], base_template, page, session, user, auth)
-			if not status then print(err) end
+			if not status then io.write(err) end
 		end
 		-- End template process code.
 		c.Template_Render(worker, common.cstr(page_full), request, common.wstr)
@@ -215,7 +216,7 @@ function processAPI(params, session, request)
 		if ret and call_str ~= nil then
 			tmp_response = call_str
 		else
-			print(call_str)
+			io.write(call_str)
 			tmp_response = "{}"
 		end
 	elseif func ~= nil then
@@ -239,10 +240,12 @@ while request ~= nil do
 	local cookie = ""
 	if session == nil then
 		session = c.NewSession(worker, request)
-		if session ~= nil then -- Session created?
-			local newsession = c.GetSessionID(session, common.wstr)
-			cookie = gen_cookie("sessionid", common.appstr(), 7)
-		end
+	end
+
+	if session ~= nil then -- Session created?
+		c.GetSessionID(session, common.wstr)
+		local newsession = SESSION_NODE_PLACEHOLDER .. common.appstr()
+		cookie = gen_cookie("sessionid", newsession, 7)
 	end
 
 	local response = ""
@@ -262,7 +265,6 @@ while request ~= nil do
 		cache = 1
 		response = getPage(request.uri, session, request)
 	end
-
 	c.WriteHeader(request, response:len(), 
 		common.cstr(content_type), common.cstr(cookie, 1), cache)
 	c.WriteData(request, common.cstr(response))

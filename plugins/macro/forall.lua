@@ -5,7 +5,7 @@
 --
 -- For example,
 --
---    forall name in {'one','two'} do print(name) end
+--    forall name in {'one','two'} do io.write(name) end
 --
 --    forall obj in get_objects() if obj:alive() then
 --        obj:action()

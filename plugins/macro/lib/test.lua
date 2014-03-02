@@ -65,9 +65,9 @@ local function _match (v1,v2) return v1:match(v2) end
 
 local function _assert (v1,v2,cmp,msg)
     if not cmp(v1,v2) then
-        print('first:',_tostring(v1))
-        print(msg)
-        print('second:',_tostring(v2))
+        io.write('first:',_tostring(v1))
+        io.write(msg)
+        io.write('second:',_tostring(v2))
         error('assertion failed',3)
     end
 end

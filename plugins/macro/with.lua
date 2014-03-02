@@ -8,7 +8,7 @@ This makes variable scoping explcit.
       .a = 1
       .b = {{x=1},{x=2}}
       .c = {f = 2}
-      print(.a,.c.f,.b[1].x)
+      io.write(.a,.c.f,.b[1].x)
     end
 
 Fields that follow an identifier or a `}` are passed as-is.

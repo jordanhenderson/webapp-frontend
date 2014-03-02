@@ -546,7 +546,7 @@ function M.substitute(src,name, use_c)
     end
 
     while t do
-        --print('tv',t,v)
+        --io.write('tv',t,v)
         local dump = true
         if t == 'iden' then -- classic name macro
             local mac = imacros[v]
