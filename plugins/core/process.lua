@@ -6,12 +6,12 @@ ffi.cdef[[
 //Struct definitions
 typedef struct {
   const char* data;
-  uint32_t len;
+  int32_t len;
   int allocated;
 } webapp_str_t;
 typedef struct {
   int status; 
-  uint64_t lastrowid;
+  int64_t lastrowid;
   int column_count;
   webapp_str_t* row;
   webapp_str_t* desc;
@@ -19,12 +19,7 @@ typedef struct {
   int have_desc;
   int rows_affected;
 } Query;
-typedef struct {
-  void* socket; 
-  void* buf;
-  void* headers;
-  int recv_amount; 
-  int length; 
+typedef struct { 
   int method; 
   webapp_str_t uri; 
   webapp_str_t host;
@@ -38,21 +33,21 @@ typedef struct {
 } Database;
 
 //Session Functions
-int GetSessionValue(void*, webapp_str_t* key, webapp_str_t* out);
+webapp_str_t* GetSessionValue(void*, webapp_str_t* key);
 int SetSessionValue(void*, webapp_str_t* key, webapp_str_t* val);
 void* GetSession(void*, Request*);
 void* NewSession(void*, Request*);
-int GetSessionID(void*, webapp_str_t* out);
+webapp_str_t* GetSessionID(void*);
 
 //Template Functions
-void Template_Render(void*, webapp_str_t*, Request*, webapp_str_t* out);
+webapp_str_t* Template_Render(void*, webapp_str_t*, Request*);
 void* Template_Get(void*, webapp_str_t*);
 
 //Request Functions
-void FinishRequest(Request*);
+void FinishRequest(void* app, Request*);
 Request* GetNextRequest(void* requests);
 void WriteData(void* request, webapp_str_t* data);
-void WriteHeader(void* request, uint32_t bytes, 
+void WriteHeader(void* request, int32_t bytes, 
 	webapp_str_t* content_type, webapp_str_t* cookies, int8_t cache);
 
 //Database Functions
@@ -61,7 +56,7 @@ Query* CreateQuery(webapp_str_t* in, Request*, Database*, int desc);
 void SetQuery(Query* query, webapp_str_t* in);
 void BindParameter(Query* query, webapp_str_t* in);
 int SelectQuery(Query* query);
-uint64_t ExecString(void* db, webapp_str_t* in);
+int64_t ExecString(void* db, webapp_str_t* in);
 
 //Filesystem Functions
 typedef struct {
@@ -72,12 +67,15 @@ typedef struct {
 
 File* File_Open(webapp_str_t* filename, webapp_str_t* mode);
 void File_Close(File* f);
-uint16_t File_Read(File* f, uint16_t n_bytes);
+int16_t File_Read(File* f, int16_t n_bytes);
 void File_Write(File* f, webapp_str_t* buf);
-uint64_t File_Size(File* f);
+int64_t File_Size(File* f);
 ]]
 c = ffi.C
 db = c.GetDatabase(app, 0)
+
+globals = {
+}
 
 handlers, page_security = load_handlers()
 
@@ -151,16 +149,15 @@ function gen_cookie(name, value, days)
 end
 
 function getUser(session) 
-	 --use wstr[2] to keep userid for API functions
-	if c.GetSessionValue(session, common.cstr("userid"), common.wstr[2]) ~= 0 then
+	local userid = c.GetSessionValue(session, common.cstr("userid"))
+	if userid ~= nil and userid.len < 0 then
 		--Lookup user auth level.
 		local query = c.CreateQuery(common.cstr(SELECT_USER), request, db, 0)
-		c.BindParameter(query, common.wstr[2]) --use wstr[2]
+		c.BindParameter(query, userid)
 		c.SelectQuery(query)
 		if query.column_count > 0 and query.row ~= nil then
 			return query.row
 		end
-		
 	end
 end
 
@@ -194,10 +191,10 @@ function getPage(uri_str, session, request)
 			if not status then io.write(err) end
 		end
 		-- End template process code.
-		c.Template_Render(worker, common.cstr(page_full), request, common.wstr)
-		local content = common.appstr()
+		local content = c.Template_Render(worker, common.cstr(page_full), request)
+		
 		if content then
-			response = content
+			response = common.appstr(content)
 		end
 	end
 	return response
@@ -208,7 +205,7 @@ function processAPI(params, session, request)
 	local func_str = params.t
 	local func = handlers[type(func_str) == "string" and func_str]
 	local user = getUser(session)
-	local auth = tonumber(user and common.appstr(user[@col(COLS_USER, "auth")]) or AUTH_GUEST)
+	local auth = tonumber(user and common.appstr(COL_USER("auth")) or AUTH_GUEST)
 	if func ~= nil and auth >= func[1] then
 		local ret, call_str = pcall(func[2], params, session, user, auth)
 		if ret and call_str ~= nil then
@@ -230,22 +227,12 @@ end
 
 math.randomseed(os.time())
 
+
 request = c.GetNextRequest(worker)
 while request ~= nil do 
 	local method = request.method
-	local session = c.GetSession(worker, request)
+	globals.session = c.GetSession(worker, request)
 	
-	local cookie = ""
-	if session == nil then
-		session = c.NewSession(worker, request)
-	end
-
-	if session ~= nil then -- Session created?
-		c.GetSessionID(session, common.wstr)
-		local newsession = SESSION_NODE_PLACEHOLDER .. common.appstr()
-		cookie = gen_cookie("sessionid", newsession, 7)
-	end
-
 	local response = ""
 	local content_type = "text/html"
 	local uri_len = tonumber(request.uri.len)
@@ -258,15 +245,23 @@ while request ~= nil do
 	then
 		content_type = "application/json"
 		local ret, params = pcall(cjson.decode, common.appstr(request.request_body))
-		response = ret and processAPI(params,session,request) or "{}"
+		response = ret and processAPI(params,globals.session,request) or "{}"
 	elseif uri_len >= 1 then
 		cache = 1
-		response = getPage(request.uri, session, request)
+		response = getPage(request.uri, globals.session, request)
 	end
+	
+	local cookie = ""
+
+	if globals.session ~= nil then -- Session created?
+		local session_id = common.appstr(c.GetSessionID(globals.session))
+		cookie = gen_cookie("sessionid", session_id, 7)
+	end
+	
 	c.WriteHeader(request, response:len(), 
 		common.cstr(content_type), common.cstr(cookie, 1), cache)
 	c.WriteData(request, common.cstr(response))
-	c.FinishRequest(request)
+	c.FinishRequest(app, request)
 
 	request = c.GetNextRequest(worker)
 end

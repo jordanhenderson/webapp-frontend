@@ -2,7 +2,7 @@ local ffi = require("ffi")
 ffi.cdef[[
 typedef struct { 
   const char* data; 
-  uint32_t len; 
+  int32_t len; 
   int allocated;
 } webapp_str_t;
 int QueueProcess(void* worker, webapp_str_t* func, webapp_str_t* vars);
@@ -23,11 +23,6 @@ c = ffi.C
 local sha2 = require "sha2"
 local time = require "time"
 
---[[NOTES
-common.wstr[2] provides user id. Do not write over [2] in order to preserve id.
---]]
-
-@def USERID common.appstr(common.wstr[2])
 local common = require "common"
 
 function hashPassword(password, salt)
@@ -102,16 +97,18 @@ function login(v, session)
 	local password = v.pass
 	local query = c.CreateQuery(common.cstr(SELECT_USER_LOGIN), request, db, 0)
 	c.BindParameter(query, common.cstr(v.user))
-	local res = c.SelectQuery(query)
-	if res == DATABASE_QUERY_STARTED and query.column_count == @col(COLS_USER_LOGIN) and query.row ~= nil then
-		local userid = tonumber(common.appstr(query.row[@col(COLS_USER_LOGIN, "id")]))
+	local user = query.row
+	if c.SelectQuery(query) == DATABASE_QUERY_STARTED 
+		and query.column_count == @col(COLS_USER) then
+		local userid = tonumber(common.appstr(COL_USER("id")))
 		--Check password.
-		local salt = common.appstr(query.row[@col(COLS_USER_LOGIN, "salt")])
-		local storedpw = common.appstr(query.row[@col(COLS_USER_LOGIN, "pass")])
+		local salt = common.appstr(COL_USER("salt"))
+		local storedpw = common.appstr(COL_USER("pass"))
 		local hashedpw = ""
 		if password ~= nil then hashedpw = hashPassword(password, salt) end
-		if userid ~= nil and userid > 0 and hashedpw == storedpw then
-			c.SetSessionValue(session, common.cstr("userid", 1), query.row[@col(COLS_USER_LOGIN, "id")])
+		if userid ~= nil and userid > 0 and hashedpw == storedpw then	
+			globals.session = c.NewSession(worker, request)
+			c.SetSessionValue(session, common.cstr("userid"), COL_USER("id"))
 			return _MESSAGE("LOGIN_SUCCESS", 1)
 		else
 			return MESSAGE("LOGIN_FAILED")

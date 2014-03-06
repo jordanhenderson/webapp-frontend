@@ -12,36 +12,46 @@ struct tm {
   int tm_yday;
   int tm_isdst;
 };
-void GetWebappTime(struct tm*);
+void GetTime(struct tm*);
+void UpdateTime(struct tm*);
 ]]
 c = ffi.C
 
 local M = {}
 local Time = {}
 Time.__index = Time
-local s = ffi.new("struct tm")
 function Time:ymd()
-	return 1900 + s.tm_year, s.tm_mon, s.tm_mday
+	return 1900 + self.s.tm_year, self.s.tm_mon, self.s.tm_mday
 end
 
 function Time:hms()
-	return s.tm_hour, s.tm_min, s.tm_sec
+	return self.s.tm_hour, self.s.tm_min, self.s.tm_sec
 end
 
 function Time:weekday()
-	return s.tm_wday
+	return self.s.tm_wday
 end
 
 function Time:add_days(days)
-	s.tm_mday = s.tm_mday + days
+	self.s.tm_mday = self.s.tm_mday + days
+	c.UpdateTime(self.s)
 end
 
 M.nowutc = function()
 	local t = {}
 	setmetatable(t, Time)
-	c.GetWebappTime(s)
+	t.s = ffi.new("struct tm")
+	c.GetTime(t.s)
 	return t
 end
 
+M.todate = function(date_string)
+	local y, m, d = date_string:match("(%i)-(%02i)-(%02i)")
+	local t = {}
+	setmetatable(t, Time)
+	t.s = ffi.new("struct tm")
+	c.UpdateTime(t.s)
+	return t
+end
 
 return M

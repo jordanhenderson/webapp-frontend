@@ -3,7 +3,7 @@ local ffi = require("ffi")
 ffi.cdef[[
 typedef struct { 
   const char* data; 
-  uint32_t len; 
+  int32_t len; 
   int allocated;
 } webapp_str_t;
 typedef struct Process {

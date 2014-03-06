@@ -2,12 +2,12 @@ local ffi = require("ffi")
 ffi.cdef[[
 typedef struct {
   const char* data; 
-  uint32_t len;
+  int32_t len;
   int allocated; 
 } webapp_str_t;
 typedef struct {
   int status; 
-  uint64_t lastrowid; 
+  int64_t lastrowid; 
   int column_count; 
   webapp_str_t* row; 
   webapp_str_t* desc; 
@@ -16,11 +16,6 @@ typedef struct {
   int rows_affected; 
 } Query;
 typedef struct { 
-  void* socket; 
-  void* buf;
-  void* headers;
-  int recv_amount; 
-  int length; 
   int method; 
   webapp_str_t uri; 
   webapp_str_t host;
@@ -39,7 +34,7 @@ Query* CreateQuery(webapp_str_t* in, Request*, Database*, int desc);
 void SetQuery(Query* query, webapp_str_t* in);
 void BindParameter(Query* query, webapp_str_t* in);
 int SelectQuery(Query* query);
-uint64_t ExecString(void* db, webapp_str_t* in);
+int64_t ExecString(void* db, webapp_str_t* in);
 int ConnectDatabase(Database* db, int database_type, const char* host, const char* username, const char* password, const char* database);
 Database* CreateDatabase(void* app);
 

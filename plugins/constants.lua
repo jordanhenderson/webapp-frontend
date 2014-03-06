@@ -23,12 +23,6 @@ SQL_SESSION(db_type),
 @def WEBAPP_PARAM_ABORTED 1
 @def WEBAPP_PARAM_BGQUEUE 2
 @def WEBAPP_PARAM_TPLCACHE 3
---[[ 
-Session node placeholder is replaced by nginx with the actual server node.
-Define this to match the size of the macro SESSION_NODE_SIZE in Session.h.
-For example, for SESSION_NODE_SIZE of 2, use "XX" here.
---]]
-@def SESSION_NODE_PLACEHOLDER "X"
 
 @def QUERY_TYPE_INSERT 0
 @def QUERY_TYPE_UPDATE 1
@@ -37,11 +31,11 @@ For example, for SESSION_NODE_SIZE of 2, use "XX" here.
 @def MESSAGE(msg) _MESSAGE(msg, nil)
 
 --Column definitions. Use _PUBLIC for fields that can be changed using update_.
-@def COLS_USER "user", "pass", "salt", "auth"
-@def COLS_USER_LOGIN "id", "pass", "salt"
+@def COLS_USER "id", "user", "pass", "salt", "auth"
+@def COL_USER(x) user[@col(COLS_USER, x)]
 
 --Filtered select statements
-@def SELECT_USER_LOGIN @join("SELECT ", COLS_USER_LOGIN, " FROM users WHERE user = ?;")
+@def SELECT_USER_LOGIN @join("SELECT ", COLS_USER, " FROM users WHERE user = ?;")
 @def SELECT_USER @join("SELECT ", COLS_USER, " FROM users WHERE id = ?;")
 
 function SQL_CONCAT(db_type, ...)
