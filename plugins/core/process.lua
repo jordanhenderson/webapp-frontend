@@ -150,7 +150,7 @@ end
 
 function getUser(session) 
 	local userid = c.GetSessionValue(session, common.cstr("userid"))
-	if userid ~= nil and userid.len < 0 then
+	if userid ~= nil and userid.len > 0 then
 		--Lookup user auth level.
 		local query = c.CreateQuery(common.cstr(SELECT_USER), request, db, 0)
 		c.BindParameter(query, userid)
@@ -204,6 +204,7 @@ function processAPI(params, session, request)
 	local tmp_response = "{}"
 	local func_str = params.t
 	local func = handlers[type(func_str) == "string" and func_str]
+	
 	local user = getUser(session)
 	local auth = tonumber(user and common.appstr(COL_USER("auth")) or AUTH_GUEST)
 	if func ~= nil and auth >= func[1] then

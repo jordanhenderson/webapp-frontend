@@ -97,9 +97,9 @@ function login(v, session)
 	local password = v.pass
 	local query = c.CreateQuery(common.cstr(SELECT_USER_LOGIN), request, db, 0)
 	c.BindParameter(query, common.cstr(v.user))
-	local user = query.row
 	if c.SelectQuery(query) == DATABASE_QUERY_STARTED 
 		and query.column_count == @col(COLS_USER) then
+		local user = query.row
 		local userid = tonumber(common.appstr(COL_USER("id")))
 		--Check password.
 		local salt = common.appstr(COL_USER("salt"))
@@ -108,7 +108,7 @@ function login(v, session)
 		if password ~= nil then hashedpw = hashPassword(password, salt) end
 		if userid ~= nil and userid > 0 and hashedpw == storedpw then	
 			globals.session = c.NewSession(worker, request)
-			c.SetSessionValue(session, common.cstr("userid"), COL_USER("id"))
+			c.SetSessionValue(globals.session, common.cstr("userid"), COL_USER("id"))
 			return _MESSAGE("LOGIN_SUCCESS", 1)
 		else
 			return MESSAGE("LOGIN_FAILED")
