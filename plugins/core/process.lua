@@ -177,7 +177,7 @@ function getPage(uri_str, session, request)
 	end
 	
 	local user = getUser(session)
-	local auth = tonumber(user and common.appstr(user[@col(COLS_USER, "auth")]) or AUTH_GUEST) 
+	local auth = tonumber(user and common.appstr(COL_USER("auth")) or AUTH_GUEST) 
 	if page_security[page] and auth < page_security[page] then
 		page = "index"
 	end
@@ -225,9 +225,6 @@ function processAPI(params, session, request)
 	
 	return tmp_response
 end
-
-math.randomseed(os.time())
-
 
 request = c.GetNextRequest(worker)
 while request ~= nil do 

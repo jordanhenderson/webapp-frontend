@@ -20,9 +20,10 @@ c = ffi.C
 
 @include 'plugins/constants.lua'
 
+math.randomseed(os.time())
+
 local sha2 = require "sha2"
 local time = require "time"
-
 local common = require "common"
 
 function hashPassword(password, salt)
@@ -98,9 +99,9 @@ function login(v, session)
 	local query = c.CreateQuery(common.cstr(SELECT_USER_LOGIN), request, db, 0)
 	c.BindParameter(query, common.cstr(v.user))
 	if c.SelectQuery(query) == DATABASE_QUERY_STARTED 
-		and query.column_count == @col(COLS_USER) then
+		and query.column_count == @icol(COLS_USER) then
 		local user = query.row
-		local userid = tonumber(common.appstr(COL_USER("id")))
+		local userid = tonumber(common.appstr(user[0]))
 		--Check password.
 		local salt = common.appstr(COL_USER("salt"))
 		local storedpw = common.appstr(COL_USER("pass"))

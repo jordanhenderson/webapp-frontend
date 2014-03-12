@@ -1,21 +1,5 @@
 local M = require 'macro'
 
-M.define("gensql_", function(get)
-	get:expecting '('
-	local col = get:name()
-	get:next(",")
-	local tbl = get:string()
-	get:next(")")
-	out = ""
-	count = 0
-	for i,k in pairs(M.macro_table[col].subst) do
-		out = out .. k[2]
-		if k[1] == "string" then count = count + 1 end
-	end
-	return "'INSERT INTO " .. tbl .. " (" .. out .. ") VALUES (" .. string.rep("?,", count - 1) .. "?);'"
-	
-end)
-
 function parsemacro(mac, sep)
 	local out = ""
 	if mac == nil or mac.subst == nil then return "" end
@@ -47,7 +31,7 @@ function parsemacro(mac, sep)
 	return out
 end
 
-M.define("col_", function(get)
+function count_columns(get)
 	get:expecting '('
 	local tbl = get:name()
 	local n = get:next()
@@ -63,11 +47,20 @@ M.define("col_", function(get)
 	local count = 0
 	for i,k in pairs(M.macro_table[tbl].subst) do
 		if k[1] == "string" then
-			if k[2] == "\"" .. col .. "\"" then return tostring(count) end
+			if k[2] == "\"" .. col .. "\"" then return count end
 			count = count + 1
 		end
 	end
-	return tostring(count)
+	return count
+end
+
+
+M.define("col_", function(get)
+	return tostring(count_columns(get))
+end)
+
+M.define("icol_", function(get)
+	return tostring(count_columns(get) + 1)
 end)
 
 function join_macro(get, sep, expand)

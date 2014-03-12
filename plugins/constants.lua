@@ -31,12 +31,12 @@ SQL_SESSION(db_type),
 @def MESSAGE(msg) _MESSAGE(msg, nil)
 
 --Column definitions. Use _PUBLIC for fields that can be changed using update_.
-@def COLS_USER "id", "user", "pass", "salt", "auth"
-@def COL_USER(x) user[@col(COLS_USER, x)]
+@def COLS_USER "user", "pass", "salt", "auth"
+@def COL_USER(x) user[@icol(COLS_USER, x)]
 
 --Filtered select statements
-@def SELECT_USER_LOGIN @join("SELECT ", COLS_USER, " FROM users WHERE user = ?;")
-@def SELECT_USER @join("SELECT ", COLS_USER, " FROM users WHERE id = ?;")
+@def SELECT_USER_LOGIN @join("SELECT id, ", COLS_USER, " FROM users WHERE user = ?;")
+@def SELECT_USER @join("SELECT id, ", COLS_USER, " FROM users WHERE id = ?;")
 
 function SQL_CONCAT(db_type, ...)
 	local n = select("#", ...)
