@@ -51,6 +51,9 @@ function count_columns(get)
 			count = count + 1
 		end
 	end
+	if col:len() > 0 and count > 0 then
+		return count - 1
+	end
 	return count
 end
 
