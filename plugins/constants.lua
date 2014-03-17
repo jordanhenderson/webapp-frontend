@@ -2,7 +2,7 @@
 @def (CREATE_DATABASE(db_type) {
 'BEGIN;',
 SQL_SESSION(db_type),
-@join('CREATE TABLE IF NOT EXISTS "users" ("id" INTEGER PRIMARY KEY NOT NULL, "user" VARCHAR(20) NOT NULL, "pass" CHAR(64) NOT NULL, "salt" CHAR(6) NOT NULL, "auth" INTEGER NOT NULL DEFAULT ',AUTH_USER,',') .. SQL_UNIQUE(db_type, "user") .. ');',
+@join('CREATE TABLE IF NOT EXISTS "users" ("id" INTEGER PRIMARY KEY NOT NULL, "user" VARCHAR(20) NOT NULL, "pass" CHAR(64) NOT NULL, "salt" CHAR(6) NOT NULL, "auth" INTEGER NOT NULL DEFAULT ',AUTH_USER,', UNIQUE (user) ON CONFLICT IGNORE);'),
 'COMMIT;'
 })
 
@@ -75,11 +75,3 @@ function SQL_SESSION(db_type)
 	return ""
 end
 
-function SQL_UNIQUE(db_type, row)
-	if db_type == DATABASE_TYPE_SQLITE then
-		return "UNIQUE(" .. row ..") ON CONFLICT IGNORE"
-	elseif db_type == DATABASE_TYPE_MYSQL then
-		return "UNIQUE(" .. row ..")"
-	end
-	return ""
-end
