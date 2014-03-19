@@ -128,21 +128,7 @@ M.find_first_of = function(str, chars)
 end
 
 M.gensql = function(query, query_type, tbl, cond, validcols, ...) 
-	if query_type == QUERY_TYPE_UPDATE then
-		local set = ""
-		for k,v in ipairs(validcols) do
-			local val = select(k, ...)
-			if val ~= nil then
-				c.BindParameter(query, common.cstr(val))
-				set = set .. v .. "=" .. "?,"
-			end
-		end
-		set = set:sub(0, #set - 1)
-		if tbl:len() == 0 then
-			return ""
-		end
-		return "UPDATE " .. tbl .. " SET " .. set .. " WHERE " .. cond .. "=?;"
-	elseif query_type == QUERY_TYPE_INSERT then
+	if query_type == 0 then --QUERY_TYPE_INSERT
 		local vs = ""
 		local cols = ""
 		local col_count = 0
@@ -157,6 +143,20 @@ M.gensql = function(query, query_type, tbl, cond, validcols, ...)
 		cols = cols:sub(0, #cols - 1)
 		vs = string.rep("?,", col_count - 1) .. "?"
 		return "INSERT INTO " .. tbl .. " (" .. cols .. ") VALUES (" .. vs .. ");"
+	elseif query_type == 1 then --QUERY_TYPE_UPDATE
+		local set = ""
+		for k,v in ipairs(validcols) do
+			local val = select(k, ...)
+			if val ~= nil then
+				c.BindParameter(query, common.cstr(val))
+				set = set .. v .. "=" .. "?,"
+			end
+		end
+		set = set:sub(0, #set - 1)
+		if tbl:len() == 0 then
+			return ""
+		end
+		return "UPDATE " .. tbl .. " SET " .. set .. " WHERE " .. cond .. "=?;"
 	end
 end
 

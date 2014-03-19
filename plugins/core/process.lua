@@ -154,8 +154,8 @@ function getUser(session)
 		--Lookup user auth level.
 		local query = c.CreateQuery(common.cstr(SELECT_USER), request, db, 0)
 		c.BindParameter(query, userid)
-		c.SelectQuery(query)
-		if query.column_count > 0 and query.row ~= nil then
+		if c.SelectQuery(query) == DATABASE_QUERY_STARTED and 
+		   query.column_count == @icol(COLS_USER) then
 			return query.row
 		end
 	end
@@ -250,7 +250,6 @@ while request ~= nil do
 	end
 	
 	local cookie = ""
-
 	if globals.session ~= nil then -- Session created?
 		local session_id = common.appstr(c.GetSessionID(globals.session))
 		cookie = gen_cookie("sessionid", session_id, 7)
