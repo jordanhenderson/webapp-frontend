@@ -44,7 +44,7 @@ webapp_str_t* Template_Render(void*, webapp_str_t*, Request*);
 void* Template_Get(void*, webapp_str_t*);
 
 //Request Functions
-void FinishRequest(void* app, Request*);
+void FinishRequest(Request*);
 Request* GetNextRequest(void* requests);
 void WriteData(void* request, webapp_str_t* data);
 void WriteHeader(void* request, int32_t bytes, 
@@ -258,7 +258,7 @@ while request ~= nil do
 	c.WriteHeader(request, response:len(), 
 		common.cstr(content_type), common.cstr(cookie, 1), cache)
 	c.WriteData(request, common.cstr(response))
-	c.FinishRequest(app, request)
+	c.FinishRequest(request)
 
 	request = c.GetNextRequest(worker)
 end
