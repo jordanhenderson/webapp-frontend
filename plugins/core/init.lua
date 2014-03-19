@@ -48,16 +48,48 @@ c = ffi.C
 @include 'plugins/constants.lua'
 common = require "common"
 handlers = load_handlers()
-request = ffi.cast("Request*", tmp_request)
-db = c.CreateDatabase(app) 
+db = c.CreateDatabase(app)
 c.ConnectDatabase(db, DATABASE_TYPE_SQLITE, "webapp.sqlite", nil, nil, nil)
 
+c.ExecString(db, common.cstr(SQL_SESSION(DATABASE_TYPE_SQLITE)))
 c.ExecString(db, common.cstr(PRAGMA_FOREIGN))
-for k,v in ipairs(CREATE_DATABASE(DATABASE_TYPE_SQLITE)) do
-	c.ExecString(db, common.cstr(v))
+c.ExecString(db, common.cstr(BEGIN_TRANSACTION))
+c.ExecString(db, common.cstr(SYSTEM_SCHEMA))
+
+--Handle database version management
+local version = 0
+local latest_version = #APP_SCHEMA
+--Check the current version
+local query = 
+	c.CreateQuery(common.cstr(SELECT_FIELD("value", "system", "key")), 
+				  request, db, 0)
+
+c.BindParameter(query, common.cstr("version"))
+if c.SelectQuery(query) == DATABASE_QUERY_STARTED and 
+   query.column_count == 1 then
+   --Version field exists.
+	version = tonumber(common.appstr(query.row[0]))
 end
 
-handlers.updateUser[2]({user="admin",pass="admin",auth=_STR_(AUTH_ADMIN)}, nil, nil, AUTH_ADMIN)
+--Execute each 'update'
+if version < latest_version then
+	for k,v in ipairs(APP_SCHEMA) do
+		if k > version then c.ExecString(db, common.cstr(v)) end
+	end
+end
+
+local version_str = "'version', " .. latest_version
+--Update the stored schema version
+c.ExecString(db, 
+	common.cstr(INSERT_FIELD("system", "key, value", version_str)))
+c.ExecString(db, common.cstr(COMMIT_TRANSACTION))
+
+
+--Create a user, just in case.
+handlers.updateUser[2](
+	{user="admin",pass="admin",auth=_STR_(AUTH_ADMIN)}, 
+	nil, nil, AUTH_ADMIN)
+
 for file, dir in common.iterdir("content/", "", 1) do
 	if dir == 0 and common.endsWith(file, ".html") then
 		c.Template_Load(common.cstr("content/" .. file))
@@ -69,7 +101,8 @@ for file, dir in common.iterdir("templates/", "", 1) do
 		local f_upper = file:upper()
 		if common.endsWith(f_upper, ".TPL") then
 			f_upper = "T_" .. f_upper:sub(1, -5)
-			c.Template_Include(app, common.cstr(f_upper), common.cstr("templates/" .. file, 1))
+			c.Template_Include(app, common.cstr(f_upper), 
+				common.cstr("templates/" .. file, 1))
 		end
 	end
 end

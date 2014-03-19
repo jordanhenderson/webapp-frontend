@@ -41,39 +41,6 @@ function hashPassword(password, salt)
 	return pass, salt
 end
 
-function gensql(query, query_type, tbl, cond, validcols, ...) 
-	if query_type == QUERY_TYPE_UPDATE then
-		local set = ""
-		for k,v in ipairs(validcols) do
-			local val = select(k, ...)
-			if val ~= nil then
-				c.BindParameter(query, common.cstr(val))
-				set = set .. v .. "=" .. "?,"
-			end
-		end
-		set = set:sub(0, #set - 1)
-		if tbl:len() == 0 then
-			return ""
-		end
-		return "UPDATE " .. tbl .. " SET " .. set .. " WHERE " .. cond .. "=?;"
-	elseif query_type == QUERY_TYPE_INSERT then
-		local vs = ""
-		local cols = ""
-		local col_count = 0
-		for k,v in ipairs(validcols) do
-			local val = select(k, ...)
-			if val ~= nil then
-				c.BindParameter(query, common.cstr(val))
-				cols = cols .. v .. ","
-				col_count = col_count + 1
-			end
-		end
-		cols = cols:sub(0, #cols - 1)
-		vs = string.rep("?,", col_count - 1) .. "?"
-		return "INSERT INTO " .. tbl .. " (" .. cols .. ") VALUES (" .. vs .. ");"
-	end
-end
-
 function dump_query(query)
 	local hasdesc = false
 	data = {}
@@ -149,7 +116,7 @@ function updateUser(v, session, user, auth)
 		query_type = QUERY_TYPE_UPDATE
 	end
 
-	local sql = gensql(query, query_type, "users", "id", {COLS_USER}, 
+	local sql = common.gensql(query, query_type, "users", "id", {COLS_USER}, 
 		target_user, pass, salt, target_auth)
 	
 	--Bind ID parameter (in case of update queries)

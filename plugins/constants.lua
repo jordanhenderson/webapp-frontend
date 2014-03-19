@@ -1,14 +1,10 @@
 --Create database queries.
-@def (CREATE_DATABASE(db_type) {
-'BEGIN;',
-SQL_SESSION(db_type),
-@join('CREATE TABLE IF NOT EXISTS "users" ("id" INTEGER PRIMARY KEY NOT NULL, "user" VARCHAR(20) NOT NULL, "pass" CHAR(64) NOT NULL, "salt" CHAR(6) NOT NULL, "auth" INTEGER NOT NULL DEFAULT ',AUTH_USER,', UNIQUE (user) ON CONFLICT IGNORE);'),
-'COMMIT;'
-})
-
+@def SYSTEM_SCHEMA 'CREATE TABLE IF NOT EXISTS "system" ("key" VARCHAR(10) PRIMARY KEY NOT NULL, "value" VARCHAR(100));'
 @def PRAGMA_FOREIGN "PRAGMA foreign_keys = ON;"
 
 --Basic constants
+@def BEGIN_TRANSACTION "BEGIN;"
+@def COMMIT_TRANSACTION "COMMIT;"
 @def DATABASE_TYPE_SQLITE 0
 @def DATABASE_TYPE_MYSQL 1
 @def RESPONSE_TYPE_DATA 0
@@ -35,6 +31,8 @@ SQL_SESSION(db_type),
 @def COL_USER(x) user[@icol(COLS_USER, x)]
 
 --Filtered select statements
+@def SELECT_FIELD(field, table, cond) @join("SELECT ", field, " FROM ", table, " WHERE ", cond, " = ?;")
+@def INSERT_FIELD(table, fields, values) @join ("INSERT INTO ", table, " (", fields, ") VALUES (", values, ");")
 @def SELECT_USER_LOGIN @join("SELECT id, ", COLS_USER, " FROM users WHERE user = ?;")
 @def SELECT_USER @join("SELECT id, ", COLS_USER, " FROM users WHERE id = ?;")
 
@@ -75,3 +73,7 @@ function SQL_SESSION(db_type)
 	return ""
 end
 
+APP_SCHEMA = {
+@join('CREATE TABLE IF NOT EXISTS "users" ("id" INTEGER PRIMARY KEY NOT NULL, "user" VARCHAR(20) NOT NULL, "pass" CHAR(64) NOT NULL, "salt" CHAR(6) NOT NULL, "auth" INTEGER NOT NULL DEFAULT ',AUTH_USER,', UNIQUE (user) ON CONFLICT IGNORE);'),
+"SELECT * FROM users;"
+}
