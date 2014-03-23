@@ -97,31 +97,38 @@ function updateUser(v, session, user, auth)
 	local target_user = v.user
 	local password = v.pass
 	local target_auth = v.auth
-
+	local query = c.CreateQuery(nil, request, db, 0)
+	
+	--[[ Apply appropriate permissions ]]--
+	--Users cannot modify other users, default ID to modify is current user.
 	if auth == AUTH_USER or ((id == nil or id:len() == 0) and (target_user == nil or password == nil)) then 
-		id = USERID --Use current user
+		c.BindParameter(query, user[0])
 	elseif id ~= nil and id:len() == 0 then
-		id = nil --Ignore empty ID field (use INSERT query)
+		--User is admin, ID not provided. Create new user.
+		id = nil
+	else
+		--User is admin, ID provided. Update existing user.
+		c.BindParameter(query, common.cstr(id))
 	end
+	
+	--Restrict auth level changes.
 	if auth == AUTH_USER and target_auth then
 		target_auth = _STR_(AUTH_USER) --Users cannot change auth level.
 	end
 	
+	--Calculate password and hash if provided.
 	local pass, salt = hashPassword(password)
-	local query = c.CreateQuery(nil, request, db, 0)
 	local query_type
-	if id == nil then
-		query_type = QUERY_TYPE_INSERT
-	else
-		query_type = QUERY_TYPE_UPDATE
-	end
+	
+	--If ID has been provided, insert new user, otherwise update existing.
+	if id == nil then query_type = QUERY_TYPE_INSERT
+	else query_type = QUERY_TYPE_UPDATE end
 
+	--Generate the appropriate sql.
 	local sql = common.gensql(query, query_type, "users", "id", {COLS_USER}, 
 		target_user, pass, salt, target_auth)
 	
-	--Bind ID parameter (in case of update queries)
-	c.BindParameter(query, common.cstr(id))
-		
+	--Set then execute the query.
 	c.SetQuery(query, common.cstr(sql))
 	c.SelectQuery(query)
 	local lastrowid = tonumber(query.lastrowid)
