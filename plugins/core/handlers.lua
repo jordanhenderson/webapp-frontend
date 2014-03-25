@@ -103,10 +103,7 @@ function updateUser(v, session, user, auth)
 	--Users cannot modify other users, default ID to modify is current user.
 	if auth == AUTH_USER or ((id == nil or id:len() == 0) and (target_user == nil or password == nil)) then 
 		c.BindParameter(query, user[0])
-	elseif id ~= nil and id:len() == 0 then
-		--User is admin, ID not provided. Create new user.
-		id = nil
-	else
+	elseif id ~= nil then
 		--User is admin, ID provided. Update existing user.
 		c.BindParameter(query, common.cstr(id))
 	end
