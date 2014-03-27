@@ -29,26 +29,27 @@ typedef struct {
 } Database;
 
 //Database Functions
-Database* GetDatabase(void* app, size_t index);
+Database* CreateDatabase();
+void DestroyDatabase(Database*);
+Database* GetDatabase(size_t index);
 Query* CreateQuery(webapp_str_t* in, Request*, Database*, int desc);
 void SetQuery(Query* query, webapp_str_t* in);
 void BindParameter(Query* query, webapp_str_t* in);
 int SelectQuery(Query* query);
 int64_t ExecString(void* db, webapp_str_t* in);
 int ConnectDatabase(Database* db, int database_type, const char* host, const char* username, const char* password, const char* database);
-Database* CreateDatabase(void* app);
 
 //Webapp Functions
-void SetParamInt(void* app, unsigned int param, int value);
-int GetParamInt(void* app, unsigned int param);
+void SetParamInt(unsigned int param, int value);
+int GetParamInt(unsigned int param);
 void Template_Load(webapp_str_t* page);
-void Template_Include(void* app, webapp_str_t* name, webapp_str_t* file);
+void Template_Include(webapp_str_t* name, webapp_str_t* file);
 ]]
 c = ffi.C
 @include 'plugins/constants.lua'
 common = require "common"
 handlers = load_handlers()
-db = c.CreateDatabase(app)
+db = c.CreateDatabase()
 c.ConnectDatabase(db, DATABASE_TYPE_SQLITE, "webapp.sqlite", nil, nil, nil)
 
 c.ExecString(db, common.cstr(SQL_SESSION(DATABASE_TYPE_SQLITE)))
@@ -101,11 +102,18 @@ for file, dir in common.iterdir("templates/", "", 1) do
 		local f_upper = file:upper()
 		if common.endsWith(f_upper, ".TPL") then
 			f_upper = "T_" .. f_upper:sub(1, -5)
-			c.Template_Include(app, common.cstr(f_upper), 
+			c.Template_Include(common.cstr(f_upper), 
 				common.cstr("templates/" .. file, 1))
 		end
 	end
 end
 
--- Disable background queue (long running operations): c.SetParamInt(app, WEBAPP_PARAM_BGQUEUE, 0)
--- Enable/Disable template caching (for debug purposes): c.SetParamInt(app, WEBAPP_PARAM_TPLCACHE, 0)
+--[[
+Enable/Disable template caching (for debug purposes): 
+	c.SetParamInt(WEBAPP_PARAM_TPLCACHE, 0)
+Enable/Disable leveldb support (uses three threads, enabled by default): 
+	c.SetParamInt(WEBAPP_PARAM_LEVELDB, 0)
+Set the number of preferred threads (request handlers).
+This value is negated by 3 if leveldb is enabled.
+	c.SetParamInt(WEBAPP_PARAM_THREADS, 2)
+--]]

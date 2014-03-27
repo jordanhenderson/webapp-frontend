@@ -51,12 +51,14 @@ void WriteHeader(void* request, int32_t bytes,
 	webapp_str_t* content_type, webapp_str_t* cookies, int8_t cache);
 
 //Database Functions
-Database* GetDatabase(void* app, size_t index);
+Database* CreateDatabase();
+void DestroyDatabase(Database*);
+Database* GetDatabase(size_t index);
 Query* CreateQuery(webapp_str_t* in, Request*, Database*, int desc);
 void SetQuery(Query* query, webapp_str_t* in);
 void BindParameter(Query* query, webapp_str_t* in);
 int SelectQuery(Query* query);
-int64_t ExecString(void* db, webapp_str_t* in);
+int64_t ExecString(Database*, webapp_str_t* in);
 
 //Filesystem Functions
 typedef struct {
@@ -72,7 +74,7 @@ void File_Write(File* f, webapp_str_t* buf);
 int64_t File_Size(File* f);
 ]]
 c = ffi.C
-db = c.GetDatabase(app, 0)
+db = c.GetDatabase(0)
 
 globals = {
 }
