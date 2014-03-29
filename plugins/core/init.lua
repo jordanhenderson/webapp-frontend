@@ -75,7 +75,11 @@ end
 --Execute each 'update'
 if version < latest_version then
 	for k,v in ipairs(APP_SCHEMA) do
-		if k > version then c.ExecString(db, common.cstr(v)) end
+		if k > version then
+			for i, j in ipairs(common.split(v, ";")) do
+				c.ExecString(db, common.cstr(j))
+			end
+		end
 	end
 end
 
