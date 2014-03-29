@@ -135,7 +135,7 @@ M.gensql = function(query, query_type, tbl, cond, validcols, ...)
 		for k,v in ipairs(validcols) do
 			local val = select(k, ...)
 			if val ~= nil then
-				c.BindParameter(query, common.cstr(val))
+				c.BindParameter(query, M.cstr(val))
 				cols = cols .. v .. ","
 				col_count = col_count + 1
 			end
@@ -148,7 +148,7 @@ M.gensql = function(query, query_type, tbl, cond, validcols, ...)
 		for k,v in ipairs(validcols) do
 			local val = select(k, ...)
 			if val ~= nil then
-				c.BindParameter(query, common.cstr(val))
+				c.BindParameter(query, M.cstr(val))
 				set = set .. v .. "=" .. "?,"
 			end
 		end
