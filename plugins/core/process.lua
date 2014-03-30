@@ -1,93 +1,30 @@
 -- core/process.lua
 -- Main instance handling/request processing script.
+@include 'plugins/constants.lua'
 
-local ffi = require("ffi")
-ffi.cdef[[
-//Struct definitions
-typedef struct {
-  const char* data;
-  int32_t len;
-  int allocated;
-} webapp_str_t;
-typedef struct {
-  int status; 
-  int64_t lastrowid;
-  int column_count;
-  webapp_str_t* row;
-  webapp_str_t* desc;
-  int need_desc;
-  int have_desc;
-  int rows_affected;
-} Query;
-typedef struct { 
-  int method; 
-  webapp_str_t uri; 
-  webapp_str_t host;
-  webapp_str_t user_agent;
-  webapp_str_t cookies;
-  webapp_str_t request_body;
-} Request;
-typedef struct {
-  int nError; 
-  size_t db_type;
-} Database;
+--handlers: Function handlers for API calls.
+--page_security: Apply permissions to content pages
+common = 					compile("plugins/common.lua")
+handlers, page_security = 	compile("plugins/core/handlers.lua")
 
-//Session Functions
-webapp_str_t* GetSessionValue(void*, webapp_str_t* key);
-int SetSessionValue(void*, webapp_str_t* key, webapp_str_t* val);
-void* GetSession(void*, Request*);
-void* NewSession(void*, Request*);
-webapp_str_t* GetSessionID(void*);
-
-//Template Functions
-webapp_str_t* Template_Render(void*, webapp_str_t*, Request*);
-void* Template_Get(void*, webapp_str_t*);
-
-//Request Functions
-void FinishRequest(Request*);
-Request* GetNextRequest(void* requests);
-void WriteData(void* request, webapp_str_t* data);
-void WriteHeader(void* request, int32_t bytes, 
-	webapp_str_t* content_type, webapp_str_t* cookies, int8_t cache);
-
-//Database Functions
-Database* CreateDatabase();
-void DestroyDatabase(Database*);
-Database* GetDatabase(size_t index);
-Query* CreateQuery(webapp_str_t* in, Request*, Database*, int desc);
-void SetQuery(Query* query, webapp_str_t* in);
-void BindParameter(Query* query, webapp_str_t* in);
-int SelectQuery(Query* query);
-int64_t ExecString(Database*, webapp_str_t* in);
-
-//Filesystem Functions
-typedef struct {
-  webapp_str_t name;
-  webapp_str_t flags;
-  webapp_str_t buffer;
-} File;
-
-File* File_Open(webapp_str_t* filename, webapp_str_t* mode);
-void File_Close(File* f);
-int16_t File_Read(File* f, int16_t n_bytes);
-void File_Write(File* f, webapp_str_t* buf);
-int64_t File_Size(File* f);
-]]
-c = ffi.C
+--Get the application level database. 
 db = c.GetDatabase(0)
 
+--Global Variables--
+--globals: Store app specific global variables.
 globals = {
 }
 
-handlers, page_security = load_handlers()
-
-@include "plugins/constants.lua"
-
-local common = require "common"
-local time = require "time"
-
+--base_template: the base page template.
 base_template = c.Template_Get(worker, nil)
 
+time = require "time"
+
+--[[
+daystr: convert a day represented by a number to a string (Mon-Sun)
+@param day number between 0 and 6 inclusive representing the day
+@returns an empty string if out of bounds (<0, >6)
+--]]
 function daystr(day)
 	if day == 0 then
 		return "Mon" 
@@ -108,6 +45,11 @@ function daystr(day)
 	end
 end
 
+--[[
+monthstr: convert a month represented by a number to a string (Jan-Dec)
+@param month number between 0 and 11 inclusive representing the month
+@returns an empty string if out of bounds (<0,>11)
+--]]
 function monthstr(month)
 	if month == 0 then
 		return "Jan"
@@ -138,6 +80,13 @@ function monthstr(month)
 	end
 end
 
+--[[
+gen_cookie: Create a 'Set-Cookie' HTTP field with the specified values.
+@param name: name of the cookie
+@param value: value of the cookie
+@param days: days number of days before expiry
+@returns the generated cookie
+--]]
 function gen_cookie(name, value, days)
 	local t = time.nowutc()
 	t:add_days(7)
@@ -145,16 +94,23 @@ function gen_cookie(name, value, days)
 	local h, mins, s = t:hms()
 	local day = daystr(t:weekday())
 	local month = monthstr(m)
-	local out = string.format("%s=%s; Expires=%s, %02i %s %i %02i:%02i:%02i GMT", 
-		name, value, day, d, month, year, h, mins, s)
+	local out = 
+		string.format("%s=%s; Expires=%s, %02i %s %i %02i:%02i:%02i GMT", 
+					  name, value, day, d, month, year, h, mins, s)
 	return out
 end
 
-function getUser(session) 
+--[[
+get_user: Retrieves the user object of the current user.
+@param session the session object
+@returns a row containing user variables, or nil if an error occured.
+]]--
+function get_user(session) 
 	local userid = c.GetSessionValue(session, common.cstr("userid"))
 	if userid ~= nil and userid.len > 0 then
 		--Lookup user auth level.
-		local query = c.CreateQuery(common.cstr(SELECT_USER), request, db, 0)
+		local query = 
+			c.CreateQuery(common.cstr(SELECT_USER), request, db, 0)
 		c.BindParameter(query, userid)
 		if c.SelectQuery(query) == DATABASE_QUERY_STARTED and 
 		   query.column_count == @icol(COLS_USER) then
@@ -163,7 +119,14 @@ function getUser(session)
 	end
 end
 
-function getPage(uri_str, session, request)
+--[[
+get_page: Returns a compiled page (base pages stored in /content)
+@param uri_str the page to render. If empty, index is assumed.
+@param session the session object
+@param request the request object
+@returns a compiled template as a lua string.
+]]--
+function get_page(uri_str, session, request)
 	local response = ""
 	local page = ""
 	local uri = uri_str.data
@@ -178,8 +141,9 @@ function getPage(uri_str, session, request)
 		page = string.sub(uristr, math.min(2, string.len(uristr)), f)
 	end
 	
-	local user = getUser(session)
-	local auth = tonumber(user and common.appstr(COL_USER("auth")) or AUTH_GUEST) 
+	local user = get_user(session)
+	local auth = 
+		tonumber(user and common.appstr(COL_USER("auth")) or AUTH_GUEST) 
 	if page_security[page] and auth < page_security[page] then
 		page = "index"
 	end
@@ -189,11 +153,13 @@ function getPage(uri_str, session, request)
 		-- Template process code.
 		local handleTemplate = handlers.handleTemplate
 		if handleTemplate ~= nil then
-			local status, err = pcall(handleTemplate[2], base_template, page, session, user, auth)
+			local status, err = pcall(handleTemplate[2], base_template, 
+									  page, session, user, auth)
 			if not status then io.write(err) end
 		end
 		-- End template process code.
-		local content = c.Template_Render(worker, common.cstr(page_full), request)
+		local content = 
+			c.Template_Render(worker, common.cstr(page_full), request)
 		
 		if content then
 			response = common.appstr(content)
@@ -202,15 +168,25 @@ function getPage(uri_str, session, request)
 	return response
 end
 
-function processAPI(params, session, request)
+--[[
+process_api: process an API call.
+@param params: the parameters, decoded into a lua table ({string=>val})
+@param session: the session object
+@param request: the request object
+@returns the API response message to be sent to the client.
+]]--
+function process_api(params, session, request)
 	local tmp_response = "{}"
 	local func_str = params.t
 	local func = handlers[type(func_str) == "string" and func_str]
 	
-	local user = getUser(session)
-	local auth = tonumber(user and common.appstr(COL_USER("auth")) or AUTH_GUEST)
+	local user = get_user(session)
+	local auth = tonumber(user and common.appstr(COL_USER("auth"))
+						  or AUTH_GUEST)
+	
 	if func ~= nil and auth >= func[1] then
-		local ret, call_str = pcall(func[2], params, session, user, auth)
+		local ret, call_str = 
+			pcall(func[2], params, session, user, auth)
 		if ret and call_str ~= nil then
 			tmp_response = call_str
 		else
@@ -228,6 +204,7 @@ function processAPI(params, session, request)
 	return tmp_response
 end
 
+--MAIN REQUEST HANDLING LOOP--
 request = c.GetNextRequest(worker)
 while request ~= nil do 
 	local method = request.method
@@ -244,16 +221,19 @@ while request ~= nil do
 		and request.uri.data[0] == 47 -- / (check last - just in case.)
 	then
 		content_type = "application/json"
-		local ret, params = pcall(cjson.decode, common.appstr(request.request_body))
-		response = ret and processAPI(params,globals.session,request) or "{}"
+		local ret, params = 
+			pcall(cjson.decode, common.appstr(request.request_body))
+		response = 
+			ret and process_api(params,globals.session,request) or "{}"
 	elseif uri_len >= 1 then
 		cache = 1
-		response = getPage(request.uri, globals.session, request)
+		response = get_page(request.uri, globals.session, request)
 	end
 	
 	local cookie = ""
 	if globals.session ~= nil then -- Session created?
-		local session_id = common.appstr(c.GetSessionID(globals.session))
+		local session_id = 
+			common.appstr(c.GetSessionID(globals.session))
 		cookie = gen_cookie("sessionid", session_id, 7)
 	end
 	

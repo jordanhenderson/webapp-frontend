@@ -1,30 +1,9 @@
-local ffi = require("ffi")
-ffi.cdef[[
-typedef struct { 
-  const char* data; 
-  int32_t len; 
-  int allocated;
-} webapp_str_t;
-int QueueProcess(void* worker, webapp_str_t* func, webapp_str_t* vars);
-void ClearCache(void* worker);
-void Shutdown(void* worker);
-void DestroySession(void* session);
-void Template_ShowGlobalSection(void*, webapp_str_t*);
-void Template_SetGlobalValue(void*, webapp_str_t* key, webapp_str_t* value);
-void Template_SetValue(void*, webapp_str_t* key, webapp_str_t* value);
-void Template_SetIntValue(void*, webapp_str_t* key, long value);
-void* Template_Get(void*, webapp_str_t*);
-void Template_Clear(void*);
-]]
-c = ffi.C
-
 @include 'plugins/constants.lua'
 
 math.randomseed(os.time())
 
-local sha2 = require "sha2"
-local time = require "time"
-local common = require "common"
+sha2 = require "sha2"
+time = require "time"
 
 function hashPassword(password, salt)
 	local pass --hashed password.
@@ -175,5 +154,5 @@ page_security = {
 
 }
 
-return function() return handlers, page_security end
+return handlers, page_security
 

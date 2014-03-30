@@ -1,38 +1,4 @@
-local ffi = require("ffi")
-ffi.cdef[[
-typedef struct { 
-  const char* data; 
-  uint32_t len; 
-  int allocated;
-} webapp_str_t;
-
-//Filesystem API
-typedef struct {
-  char path[4096];
-  int has_next;
-  int n_files;
-  void* _files;
-  void* _h;
-  void* _f;
-  void* _d;
-  void* _e;
-} Directory;
-
-typedef struct {
-  char path[4096];
-  char name[256];
-  int is_dir;
-  int is_reg;
-  void* _s;
-} DirFile;
-
-int tinydir_open(Directory*, const char* path);
-int tinydir_open_sorted(Directory*, const char* path);
-void tinydir_close(Directory*);
-int tinydir_next(Directory*);
-int tinydir_readfile(Directory*, DirFile*);
-]]
-c = ffi.C
+@include 'plugins/constants.lua'
 
 local M = {}
 M.wstr = ffi.cast("webapp_str_t*", static_strings)

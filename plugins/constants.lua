@@ -77,3 +77,202 @@ end
 APP_SCHEMA = {
 @join('CREATE TABLE IF NOT EXISTS "users" ("id" INTEGER PRIMARY KEY NOT NULL, "user" VARCHAR(20) NOT NULL, "pass" CHAR(64) NOT NULL, "salt" CHAR(6) NOT NULL, "auth" INTEGER NOT NULL DEFAULT ',AUTH_USER,', UNIQUE (user) ON CONFLICT IGNORE);'),
 }
+
+ffi = require("ffi")
+ffi.cdef [[
+typedef struct {
+  const char* data;
+  int32_t len;
+  int allocated;
+} webapp_str_t;
+
+//Request handling
+typedef struct {
+  int method; 
+  webapp_str_t uri; 
+  webapp_str_t host;
+  webapp_str_t user_agent;
+  webapp_str_t cookies;
+  webapp_str_t request_body;
+} Request;
+
+void SetParamInt(unsigned int param, int value);
+int GetParamInt(unsigned int param);
+void ClearCache(void* worker);
+void Shutdown(void* worker);
+void DestroySession(void* session);
+webapp_str_t* CompileScript(const char* script);
+
+/*
+FinishRequest finalises and cleans up a request object
+@param Request the request object
+*/
+void FinishRequest(Request*);
+
+/*
+GetNextRequest pops the next request from the request queue (or blocks
+when there are none available).
+@param requests the request queue
+@returns the request object, or nil if the worker should abort.
+*/
+Request* GetNextRequest(void* requests);
+
+/*
+WriteData writes chunks of data to a request's socket.
+@param request the request object to write to
+@param data the data chunk to write
+*/
+void WriteData(void* request, webapp_str_t* data);
+
+//Session Functions
+webapp_str_t* GetSessionValue(void*, webapp_str_t* key);
+int SetSessionValue(void*, webapp_str_t* key, webapp_str_t* val);
+void* GetSession(void*, Request*);
+void* NewSession(void*, Request*);
+webapp_str_t* GetSessionID(void*);
+
+//Template Functions
+webapp_str_t* Template_Render(void*, webapp_str_t*, Request*);
+void* Template_Get(void*, webapp_str_t*);
+void Template_Load(webapp_str_t* page);
+void Template_Include(webapp_str_t* name, webapp_str_t* file);
+void Template_ShowGlobalSection(void*, webapp_str_t*);
+void Template_SetGlobalValue(void*, webapp_str_t* key, webapp_str_t* value);
+void Template_SetValue(void*, webapp_str_t* key, webapp_str_t* value);
+void Template_SetIntValue(void*, webapp_str_t* key, long value);
+void Template_Clear(void*);
+
+//Database Functions
+typedef struct {
+  int nError; 
+  size_t db_type;
+} Database;
+typedef struct {
+  int status; 
+  int64_t lastrowid;
+  int column_count;
+  webapp_str_t* row;
+  webapp_str_t* desc;
+  int need_desc;
+  int have_desc;
+  int rows_affected;
+} Query;
+
+/*
+CreateDatabase creates a new database object
+@returns the created Database object.
+*/
+Database* CreateDatabase();
+
+/*
+ConnectDatabase connects a database object to a provider.
+Currently supported: SQLite, MySQL.
+@param db the database object
+@param database_type the type of provider
+@param host the host (or file location, for SQLite) of the provider
+@param username the username for the provider
+@param password the password of the provider
+@param database the database to use (for multi-database systems)
+@returns the status of database connection success
+*/
+int ConnectDatabase(Database* db, int database_type, const char* host, 
+	const char* username, const char* password, const char* database);
+
+/*
+DestroyDatabase destroys a database object
+@param db the database object to destroy
+*/
+void DestroyDatabase(Database* db);
+
+/*
+GetDatabase returns a database given the specified id.
+@param id the database id
+@returns the database object, or null if non existent
+*/
+Database* GetDatabase(size_t id);
+
+/*
+CreateQuery creates a query object.
+@param qry_str the query string. Can be set later using SetQuery.
+@param r the request object
+@param db the database object
+@param desc whether to populate the row description fields
+@returns the query object.
+*/
+Query* CreateQuery(webapp_str_t* qry_str, 
+				   Request* r, Database* db, int desc);
+
+/*
+SetQuery sets the string of a query object.
+@param query the query object to set
+@param qry_str the new query string
+*/
+void SetQuery(Query* query, webapp_str_t* qry_str);
+
+/*
+BindParameter binds a parameter to a query
+@param query the query object
+@param the parameter to bind
+*/
+void BindParameter(Query* query, webapp_str_t* param);
+
+/*
+SelectQuery executes a query, storing any values returned in the query
+object.
+@param query the query object
+@returns the query status (query.status) after execution.
+*/
+int SelectQuery(Query* query);
+
+/*
+ExecString executes a string, returning the queries last row id.
+@param db the database object
+@param qry_str the query string to execute
+*/
+int64_t ExecString(Database* db, webapp_str_t* qry_str);
+
+typedef struct {
+  webapp_str_t name;
+  webapp_str_t flags;
+  webapp_str_t buffer;
+} File;
+
+File* File_Open(webapp_str_t* filename, webapp_str_t* mode);
+void File_Close(File* f);
+int16_t File_Read(File* f, int16_t n_bytes);
+void File_Write(File* f, webapp_str_t* buf);
+int64_t File_Size(File* f);
+
+typedef struct {
+  char path[4096];
+  int has_next;
+  int n_files;
+  void* _files;
+  void* _h;
+  void* _f;
+  void* _d;
+  void* _e;
+} Directory;
+
+typedef struct {
+  char path[4096];
+  char name[256];
+  int is_dir;
+  int is_reg;
+  void* _s;
+} DirFile;
+
+int tinydir_open(Directory*, const char* path);
+int tinydir_open_sorted(Directory*, const char* path);
+void tinydir_close(Directory*);
+int tinydir_next(Directory*);
+int tinydir_readfile(Directory*, DirFile*);
+]]
+c = ffi.C
+
+function compile(file)
+	local bc_raw = c.CompileScript(file)
+	local bc = ffi.string(bc_raw.data, tonumber(bc_raw.len))
+	return loadstring(bc)()
+
+end
