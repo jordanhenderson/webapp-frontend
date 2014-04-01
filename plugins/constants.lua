@@ -88,12 +88,7 @@ typedef struct {
 
 //Request handling
 typedef struct {
-  int method; 
-  webapp_str_t uri; 
-  webapp_str_t host;
-  webapp_str_t user_agent;
-  webapp_str_t cookies;
-  webapp_str_t request_body;
+  webapp_str_t headers_buf;
 } Request;
 
 void SetParamInt(unsigned int param, int value);
@@ -127,8 +122,9 @@ void WriteData(void* request, webapp_str_t* data);
 //Session Functions
 webapp_str_t* GetSessionValue(void*, webapp_str_t* key);
 int SetSessionValue(void*, webapp_str_t* key, webapp_str_t* val);
-void* GetSession(void*, Request*);
-void* NewSession(void*, Request*);
+void* GetCookieSession(void*, Request*, webapp_str_t* cookies);
+void* GetSession(void*, Request*, webapp_str_t* session_id);
+void* NewSession(void*, Request*, webapp_str_t* pri, webapp_str_t* sec);
 webapp_str_t* GetSessionID(void*);
 
 //Template Functions

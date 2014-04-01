@@ -4,11 +4,11 @@
 
 --handlers: Function handlers for API calls.
 --page_security: Apply permissions to content pages
-common = 					compile("plugins/common.lua")
-handlers, page_security = 	compile("plugins/core/handlers.lua")
+local common = 					compile("plugins/common.lua")
+local handlers, page_security = 	compile("plugins/core/handlers.lua")
 
 --Get the application level database. 
-db = c.GetDatabase(0)
+local db = c.GetDatabase(0)
 
 --Global Variables--
 --globals: Store app specific global variables.
@@ -16,9 +16,10 @@ globals = {
 }
 
 --base_template: the base page template.
-base_template = c.Template_Get(worker, nil)
+local base_template = c.Template_Get(worker, nil)
 
-time = require "time"
+local time = require "time"
+local mp = require "MessagePack"
 
 --[[
 daystr: convert a day represented by a number to a string (Mon-Sun)
@@ -205,10 +206,14 @@ function process_api(params, session, request)
 end
 
 --MAIN REQUEST HANDLING LOOP--
-request = c.GetNextRequest(worker)
-while request ~= nil do 
+r = c.GetNextRequest(worker)
+while r ~= nil do 
+	local request = mp.unpack(common.appstr(r.headers_buf))
+	for i,k in ipairs(request) do
+		io.write(i,k)
+	end
 	local method = request.method
-	globals.session = c.GetSession(worker, request)
+	globals.session = c.GetCookieSession(worker, request, common.cstr(""))
 	
 	local response = ""
 	local content_type = "text/html"
@@ -237,8 +242,6 @@ while request ~= nil do
 		cookie = gen_cookie("sessionid", session_id, 7)
 	end
 	
-	c.WriteHeader(request, response:len(), 
-		common.cstr(content_type), common.cstr(cookie, 1), cache)
 	c.WriteData(request, common.cstr(response))
 	c.FinishRequest(request)
 

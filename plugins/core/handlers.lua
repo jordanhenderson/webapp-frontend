@@ -54,7 +54,7 @@ function login(v, session)
 		local hashedpw = ""
 		if password ~= nil then hashedpw = hashPassword(password, salt) end
 		if userid ~= nil and userid > 0 and hashedpw == storedpw then	
-			globals.session = c.NewSession(worker, request)
+			globals.session = c.NewSession(worker, request.host, request.user_agent)
 			c.SetSessionValue(globals.session, common.cstr("userid"), user[0])
 			return _MESSAGE("LOGIN_SUCCESS", 1)
 		else
