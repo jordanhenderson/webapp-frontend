@@ -69,6 +69,7 @@ for file, dir in common.iterdir("templates/", "", 1) do
 end
 
 --[[
+Optional:
 Enable/Disable template caching (for debug purposes): 
 	c.SetParamInt(WEBAPP_PARAM_TPLCACHE, 0)
 Enable/Disable leveldb support (uses three threads, enabled by default): 
@@ -76,4 +77,12 @@ Enable/Disable leveldb support (uses three threads, enabled by default):
 Set the number of preferred threads (request handlers).
 This value is negated by 3 if leveldb is enabled.
 	c.SetParamInt(WEBAPP_PARAM_THREADS, 2)
+	
 --]]
+
+--[[
+Important:
+Specify the size, in bytes, of the custom request struct allocated by
+webapp for the VM.
+]]
+c.SetParamInt(WEBAPP_PARAM_REQUESTSIZE, ffi.sizeof("LuaRequest"))

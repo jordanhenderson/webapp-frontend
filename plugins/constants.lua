@@ -20,6 +20,7 @@
 @def WEBAPP_PARAM_TPLCACHE 2
 @def WEBAPP_PARAM_LEVELDB 3
 @def WEBAPP_PARAM_THREADS 4
+@def WEBAPP_PARAM_REQUESTSIZE 5
 
 @def QUERY_TYPE_INSERT 0
 @def QUERY_TYPE_UPDATE 1
@@ -86,10 +87,20 @@ typedef struct {
   int allocated;
 } webapp_str_t;
 
+typedef struct {
+  webapp_str_t cookies;
+  webapp_str_t host;
+  webapp_str_t uri;
+  webapp_str_t user_agent;
+  webapp_str_t method;
+} LuaRequest;
+
 //Request handling
 typedef struct {
   webapp_str_t headers_buf;
+  LuaRequest* r;
 } Request;
+
 
 void SetParamInt(unsigned int param, int value);
 int GetParamInt(unsigned int param);

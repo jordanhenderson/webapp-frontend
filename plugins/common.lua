@@ -16,16 +16,20 @@ M.appstr = function(webapp_str)
 	return ffi.string(webapp_str.data, tonumber(webapp_str.len))
 end
 
+M.setstr = function(str, dest)
+	dest.data = str
+	if str ~= nil then
+		dest.len = string.len(str)
+	else
+		dest.len = 0
+	end
+end
+
 M.cstr = function(str, idx)
 	if idx == nil then
 		idx = 0
 	end
-	M.wstr[idx].data = str
-	if str ~= nil then
-		M.wstr[idx].len = string.len(str)
-	else
-		M.wstr[idx].len = 0
-	end
+	M.setstr(str, M.wstr[idx])
 	return M.wstr[idx]
 end
 

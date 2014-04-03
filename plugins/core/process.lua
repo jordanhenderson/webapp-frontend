@@ -206,13 +206,10 @@ function process_api(params, session, request)
 end
 
 --MAIN REQUEST HANDLING LOOP--
-r = c.GetNextRequest(worker)
+request = c.GetNextRequest(worker)
 while r ~= nil do 
-	local request = mp.unpack(common.appstr(r.headers_buf))
-	for i,k in ipairs(request) do
-		io.write(i,k)
-	end
-	local method = request.method
+	local request_buf = common.appstr(r.headers_buf)
+	
 	globals.session = c.GetCookieSession(worker, request, common.cstr(""))
 	
 	local response = ""
