@@ -1,5 +1,4 @@
 @include 'plugins/constants.lua'
-
 math.randomseed(os.time())
 
 sha2 = require "sha2"
@@ -54,8 +53,8 @@ function login(v, session)
 		local hashedpw = ""
 		if password ~= nil then hashedpw = hashPassword(password, salt) end
 		if userid ~= nil and userid > 0 and hashedpw == storedpw then	
-			globals.session = c.NewSession(worker, request.host, request.user_agent)
-			c.SetSessionValue(globals.session, common.cstr("userid"), user[0])
+			r.session = c.NewSession(worker, r.host, r.user_agent)
+			c.SetSessionValue(r.session, common.cstr("userid"), user[0])
 			return _MESSAGE("LOGIN_SUCCESS", 1)
 		else
 			return MESSAGE("LOGIN_FAILED")

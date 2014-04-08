@@ -4,22 +4,22 @@
 
 --handlers: Function handlers for API calls.
 --page_security: Apply permissions to content pages
-local common = 					compile("plugins/common.lua")
+common = 					compile("plugins/common.lua")
 local handlers, page_security = 	compile("plugins/core/handlers.lua")
 
 --Get the application level database. 
 local db = c.GetDatabase(0)
-
---Global Variables--
---globals: Store app specific global variables.
-globals = {
-}
 
 --base_template: the base page template.
 local base_template = c.Template_Get(worker, nil)
 
 local time = require "time"
 local mp = require "MessagePack"
+
+--The global (current) request object.
+request = nil
+--The lua request object.
+r = nil
 
 --[[
 daystr: convert a day represented by a number to a string (Mon-Sun)
@@ -154,9 +154,7 @@ function get_page(uri_str, session, request)
 		-- Template process code.
 		local handleTemplate = handlers.handleTemplate
 		if handleTemplate ~= nil then
-			local status, err = pcall(handleTemplate[2], base_template, 
-									  page, session, user, auth)
-			if not status then io.write(err) end
+			handleTemplate[2](base_template, page, session, user, auth)
 		end
 		-- End template process code.
 		local content = 
@@ -186,8 +184,7 @@ function process_api(params, session, request)
 						  or AUTH_GUEST)
 	
 	if func ~= nil and auth >= func[1] then
-		local ret, call_str = 
-			pcall(func[2], params, session, user, auth)
+		local ret, call_str = func[2](params, session, user, auth)
 		if ret and call_str ~= nil then
 			tmp_response = call_str
 		else
@@ -205,40 +202,97 @@ function process_api(params, session, request)
 	return tmp_response
 end
 
---MAIN REQUEST HANDLING LOOP--
-request = c.GetNextRequest(worker)
-while r ~= nil do 
-	local request_buf = common.appstr(r.headers_buf)
+local function cursor_string (str)
+    return {
+        s = str,
+        i = 1,
+        j = #str,
+        underflow = function (self)
+                        error "missing bytes"
+                    end,
+    }
+end
+
+local function get_buffer(u)
+	local i, ret = u()
+	if type(ret) ~= "string" then
+		return nil, 0
+	end
+	local l = ret:len()
+	return request.headers_buf.data + i - l - 1, l
+end
+
+function unpacker(src)
+	local cursor = cursor_string(src)
+	return function ()
+		if cursor.i <= cursor.j then
+			local ret = mp.unpackers.any(cursor)
+			return cursor.i, ret
+		end
+	end
+end
+
+function handle_request()
+	local request_buf = common.appstr(request.headers_buf)
+	print(request_buf)
+	local u = unpacker(request_buf)
 	
-	globals.session = c.GetCookieSession(worker, request, common.cstr(""))
+	_, r.request_body.len = u()
+	_, r.method = u()
+	r.uri.data, r.uri.len = 			  get_buffer(u)
+	r.host.data, r.host.len = 			  get_buffer(u)
+	r.user_agent.data, r.user_agent.len = get_buffer(u)
+	r.cookies.data, r.cookies.len = 	  get_buffer(u)
+	
+	print(common.appstr(r.uri))
+	print(common.appstr(r.host))
+	
+	r.session = c.GetCookieSession(worker, request, r.cookies)
 	
 	local response = ""
 	local content_type = "text/html"
-	local uri_len = tonumber(request.uri.len)
+	local uri_len = tonumber(r.uri.len)
 	local cache = 0
 	if uri_len > 3
-		and request.uri.data[1] == 97 -- a
-		and request.uri.data[2] == 112 -- p
-		and request.uri.data[3] == 105 -- i
-		and request.uri.data[0] == 47 -- / (check last - just in case.)
+		and r.uri.data[1] == 97 -- a
+		and r.uri.data[2] == 112 -- p
+		and r.uri.data[3] == 105 -- i
+		and r.uri.data[0] == 47 -- / (check last - just in case.)
 	then
 		content_type = "application/json"
-		local ret, params = 
-			pcall(cjson.decode, common.appstr(request.request_body))
-		response = 
-			ret and process_api(params,globals.session,request) or "{}"
+		local params = cjson.decode(common.appstr(r.request_body))
+		response = process_api(params,r.session, request)
 	elseif uri_len >= 1 then
 		cache = 1
-		response = get_page(request.uri, globals.session, request)
+		response = get_page(r.uri, r.session, request)
 	end
 	
 	local cookie = ""
-	if globals.session ~= nil then -- Session created?
+	if r.session ~= nil then -- Session created?
 		local session_id = 
-			common.appstr(c.GetSessionID(globals.session))
+			common.appstr(c.GetSessionID(r.session))
 		cookie = gen_cookie("sessionid", session_id, 7)
 	end
 	
+	local pk = mp.pack(#response) .. 
+			   mp.pack(cache) ..
+			   mp.pack(cookie) ..
+			   mp.pack(content_type)
+	pk = mp.pack(#pk) .. pk
+	return pk
+end
+
+--MAIN REQUEST HANDLING LOOP--
+request = c.GetNextRequest(worker)
+while request ~= nil do	
+	r = request.r
+	local ret, response = pcall(handle_request)
+	if not ret then 
+		io.write(response)
+		response = ""
+	end
+	print(response)
+
 	c.WriteData(request, common.cstr(response))
 	c.FinishRequest(request)
 

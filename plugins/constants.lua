@@ -9,6 +9,7 @@
 @def DATABASE_TYPE_MYSQL 1
 @def RESPONSE_TYPE_DATA 0
 @def RESPONSE_TYPE_MESSAGE 1
+@def REQUEST_NUM_ELEMENTS 6
 @def AUTH_GUEST 0
 @def AUTH_USER 1
 @def AUTH_ADMIN 2
@@ -92,7 +93,9 @@ typedef struct {
   webapp_str_t host;
   webapp_str_t uri;
   webapp_str_t user_agent;
-  webapp_str_t method;
+  webapp_str_t request_body;
+  int method;
+  void* session;
 } LuaRequest;
 
 //Request handling
@@ -118,10 +121,10 @@ void FinishRequest(Request*);
 /*
 GetNextRequest pops the next request from the request queue (or blocks
 when there are none available).
-@param requests the request queue
+@param worker the request worker
 @returns the request object, or nil if the worker should abort.
 */
-Request* GetNextRequest(void* requests);
+Request* GetNextRequest(void* worker);
 
 /*
 WriteData writes chunks of data to a request's socket.
@@ -133,7 +136,15 @@ void WriteData(void* request, webapp_str_t* data);
 //Session Functions
 webapp_str_t* GetSessionValue(void*, webapp_str_t* key);
 int SetSessionValue(void*, webapp_str_t* key, webapp_str_t* val);
-void* GetCookieSession(void*, Request*, webapp_str_t* cookies);
+
+/*
+GetCookieSession creates a new session object for the existing session
+identified by the cookie string (which must contain a sessionid= cookie.
+@param worker the request worker
+@param r the request object
+@param cookies the cookies string
+*/
+void* GetCookieSession(void* worker, Request* r, webapp_str_t* cookies);
 void* GetSession(void*, Request*, webapp_str_t* session_id);
 void* NewSession(void*, Request*, webapp_str_t* pri, webapp_str_t* sec);
 webapp_str_t* GetSessionID(void*);
@@ -281,5 +292,4 @@ function compile(file)
 	local bc_raw = c.CompileScript(file)
 	local bc = ffi.string(bc_raw.data, tonumber(bc_raw.len))
 	return loadstring(bc)()
-
 end
