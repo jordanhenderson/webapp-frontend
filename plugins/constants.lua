@@ -3,6 +3,7 @@
 @def PRAGMA_FOREIGN "PRAGMA foreign_keys = ON;"
 
 --Basic constants
+@def NUM_EVENTS 2048
 @def BEGIN_TRANSACTION "BEGIN;"
 @def COMMIT_TRANSACTION "COMMIT;"
 @def DATABASE_TYPE_SQLITE 0
@@ -89,6 +90,7 @@ typedef struct {
 } webapp_str_t;
 
 typedef struct {
+  int32_t co;
   webapp_str_t cookies;
   webapp_str_t host;
   webapp_str_t uri;

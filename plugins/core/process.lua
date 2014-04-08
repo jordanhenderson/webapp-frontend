@@ -13,6 +13,9 @@ local db = c.GetDatabase(0)
 --base_template: the base page template.
 local base_template = c.Template_Get(worker, nil)
 
+--asynchronous event table. Used to enable concurrent 
+local events = common.new_table(NUM_EVENTS, 0)
+
 local time = require "time"
 local mp = require "MessagePack"
 
@@ -203,14 +206,14 @@ function process_api(params, session, request)
 end
 
 local function cursor_string (str)
-    return {
-        s = str,
-        i = 1,
-        j = #str,
-        underflow = function (self)
-                        error "missing bytes"
-                    end,
-    }
+	return {
+		s = str,
+		i = 1,
+		j = #str,
+		underflow = function (self)
+						error "missing bytes"
+					end,
+	}
 end
 
 local function get_buffer(u)
@@ -234,7 +237,6 @@ end
 
 function handle_request()
 	local request_buf = common.appstr(request.headers_buf)
-	print(request_buf)
 	local u = unpacker(request_buf)
 	
 	_, r.request_body.len = u()
@@ -243,10 +245,6 @@ function handle_request()
 	r.host.data, r.host.len = 			  get_buffer(u)
 	r.user_agent.data, r.user_agent.len = get_buffer(u)
 	r.cookies.data, r.cookies.len = 	  get_buffer(u)
-	
-	print(common.appstr(r.uri))
-	print(common.appstr(r.host))
-	
 	r.session = c.GetCookieSession(worker, request, r.cookies)
 	
 	local response = ""
@@ -283,19 +281,75 @@ function handle_request()
 	return pk
 end
 
---MAIN REQUEST HANDLING LOOP--
-request = c.GetNextRequest(worker)
-while request ~= nil do	
-	r = request.r
+function start_request()
 	local ret, response = pcall(handle_request)
 	if not ret then 
 		io.write(response)
 		response = ""
 	end
-	print(response)
 
 	c.WriteData(request, common.cstr(response))
 	c.FinishRequest(request)
+	return 1
+end
 
+function run_coroutine(f)
+	while f do 
+		f = coroutine.yield(f()) 
+	end
+end
+
+local ev = coroutine.create(run_coroutine)
+--use event_ctr to 'round-robin' events, to speed up empty event finding
+local event_ctr = 1
+
+request = c.GetNextRequest(worker)
+while request ~= nil do
+	r = request.r
+	local co = tonumber(r.co)
+	if co > 0 then
+		ev = events[co]
+	end
+	local ret = coroutine.resume(ev, start_request)
+	--co may have changed, indicating a yield.
+	
+	if ret ~= 1 then
+		--ret not 1, must have yielded before end of start_request.
+		--Store the coroutine for later.
+		--find an empty slot
+		local target_ev = 0
+		for i = 1, NUM_EVENTS do
+			if events[i] == nil then
+				target_ev = i
+				break
+			end
+		end
+		
+		if target_ev == 0 then
+			for i = 1, event_ctr do
+				if events[i] == nil then
+					target_ev = i
+					break
+				end
+			end
+		end
+		
+		--Still no free event found? Then just place at end of table.
+		target_ev = #events
+		
+		events[target_ev] = ev
+		--Provide a way for the request to resume the coroutine.
+		r.co = target_ev
+		--clear base event for next loop.
+		ev = coroutine.create(run_coroutine)
+		event_ctr = target_ev + 1
+		--Reset event_ctr when it reaches the max value.
+		if event_ctr > NUM_EVENTS then
+			event_ctr = 1
+		end
+	else
+		--event has finished. Ensure we clear out the old coroutine.
+		events[event_ctr] = nil
+	end
 	request = c.GetNextRequest(worker)
 end

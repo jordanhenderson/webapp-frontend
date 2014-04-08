@@ -130,4 +130,16 @@ M.gensql = function(query, query_type, tbl, cond, validcols, ...)
 	end
 end
 
+--Preallocate tables.
+local ret, new_table = pcall(require, "table.new")
+if not ret then new_table = function (narr, nrec) return {} end end
+
+M.new_table = new_table
+
+--Wait for n_bytes. Uses asio, yields.
+M.read_data = function(n_bytes)
+	
+	coroutine.yield()
+end
+
 return M
