@@ -216,15 +216,6 @@ local function cursor_string (str)
 	}
 end
 
-local function get_buffer(u)
-	local i, ret = u()
-	if type(ret) ~= "string" then
-		return nil, 0
-	end
-	local l = ret:len()
-	return request.headers_buf.data + i - l - 1, l
-end
-
 function unpacker(src)
 	local cursor = cursor_string(src)
 	return function ()
@@ -233,6 +224,15 @@ function unpacker(src)
 			return cursor.i, ret
 		end
 	end
+end
+
+local function get_buffer(u)
+	local i, ret = u()
+	if type(ret) ~= "string" then
+		return nil, 0
+	end
+	local l = ret:len()
+	return request.headers_buf.data + i - l - 1, l
 end
 
 function handle_request()
@@ -289,7 +289,6 @@ function start_request()
 	end
 
 	c.WriteData(request, common.cstr(response))
-	c.FinishRequest(request)
 	return 1
 end
 
@@ -310,15 +309,19 @@ while request ~= nil do
 	if co > 0 then
 		ev = events[co]
 	end
-	local ret = coroutine.resume(ev, start_request)
-	--co may have changed, indicating a yield.
+	local ret
 	
+	_, ret = coroutine.resume(ev, start_request)
+
+	--co may have changed, indicating a yield.
 	if ret ~= 1 then
 		--ret not 1, must have yielded before end of start_request.
 		--Store the coroutine for later.
 		--find an empty slot
 		local target_ev = 0
-		for i = 1, NUM_EVENTS do
+		local num_events = #events
+		--Simple (round robin) search algorithm. Search from event_ctr->end
+		for i = event_ctr, num_events do
 			if events[i] == nil then
 				target_ev = i
 				break
@@ -326,6 +329,7 @@ while request ~= nil do
 		end
 		
 		if target_ev == 0 then
+			--Search from 1->event_ctr.
 			for i = 1, event_ctr do
 				if events[i] == nil then
 					target_ev = i
@@ -335,7 +339,9 @@ while request ~= nil do
 		end
 		
 		--Still no free event found? Then just place at end of table.
-		target_ev = #events
+		if target_ev == 0 then
+			target_ev = num_events
+		end
 		
 		events[target_ev] = ev
 		--Provide a way for the request to resume the coroutine.
@@ -349,7 +355,9 @@ while request ~= nil do
 		end
 	else
 		--event has finished. Ensure we clear out the old coroutine.
-		events[event_ctr] = nil
+		if co > 0 then events[co] = nil end
+		--Clean up the request
+		c.FinishRequest(request)
 	end
 	request = c.GetNextRequest(worker)
 end
