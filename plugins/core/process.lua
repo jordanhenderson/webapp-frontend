@@ -277,9 +277,8 @@ function handle_request()
 	local pk = mp.pack(#response) .. 
 			   mp.pack(cache) ..
 			   mp.pack(cookie) ..
-			   mp.pack(content_type) ..
-			   response
-	pk = mp.pack(#pk) .. pk
+			   mp.pack(content_type)
+	pk = mp.pack(#pk) .. pk .. response
 	return pk
 end
 
