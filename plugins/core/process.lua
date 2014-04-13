@@ -4,7 +4,7 @@
 
 --handlers: Function handlers for API calls.
 --page_security: Apply permissions to content pages
-common = 					compile("plugins/common.lua")
+common = 							compile("plugins/common.lua")
 local handlers, page_security = 	compile("plugins/core/handlers.lua")
 
 --Get the application level database. 
@@ -187,11 +187,10 @@ function process_api(params, session, request)
 						  or AUTH_GUEST)
 	
 	if func ~= nil and auth >= func[1] then
-		local ret, call_str = func[2](params, session, user, auth)
-		if ret and call_str ~= nil then
-			tmp_response = call_str
+		local ret = func[2](params, session, user, auth)
+		if ret then
+			tmp_response = ret
 		else
-			io.write(call_str)
 			tmp_response = "{}"
 		end
 	elseif func ~= nil then
@@ -251,6 +250,12 @@ function handle_request()
 	local content_type = "text/html"
 	local uri_len = tonumber(r.uri.len)
 	local cache = 0
+	
+	if r.method == 8 then
+		r.request_body.data = 
+			common.read_data(request.socket, r.request_body.len, 1).data
+	end
+	
 	if uri_len > 3
 		and r.uri.data[1] == 97 -- a
 		and r.uri.data[2] == 112 -- p
@@ -258,8 +263,9 @@ function handle_request()
 		and r.uri.data[0] == 47 -- / (check last - just in case.)
 	then
 		content_type = "application/json"
-		local params = cjson.decode(common.appstr(r.request_body))
-		response = process_api(params,r.session, request)
+		response = 
+			process_api(cjson.decode(common.appstr(r.request_body)),
+						r.session, request)
 	elseif uri_len >= 1 then
 		cache = 1
 		response = get_page(r.uri, r.session, request)
@@ -267,9 +273,9 @@ function handle_request()
 	
 	local cookie = ""
 	if r.session ~= nil then -- Session created?
-		local session_id = 
-			common.appstr(c.GetSessionID(r.session))
-		cookie = gen_cookie("sessionid", session_id, 7)
+		cookie = 
+			gen_cookie("sessionid", 
+					   common.appstr(c.GetSessionID(r.session)), 7)
 	end
 	
 	local pk = mp.pack(#response) .. 
@@ -283,12 +289,19 @@ end
 
 function start_request()
 	local ret, response = pcall(handle_request)
-	if not ret then 
-		io.write(response)
-		response = ""
+	if not ret then
+		if response then io.write(response) end
+		local empty = ""
+		local pk = mp.pack(0) ..
+				   mp.pack(empty) ..
+				   mp.pack(empty) ..
+				   mp.pack(empty) ..
+				   empty
+		pk = mp.pack(#pk) .. pk
+		response = pk
 	end
 
-	c.WriteData(request, common.cstr(response))
+	c.WriteData(request.socket, common.cstr(response))
 	return 1
 end
 

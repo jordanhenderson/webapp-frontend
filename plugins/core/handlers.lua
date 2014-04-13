@@ -4,6 +4,8 @@ math.randomseed(os.time())
 sha2 = require "sha2"
 time = require "time"
 
+local db = c.GetDatabase(0)
+
 function hashPassword(password, salt)
 	local pass --hashed password.
 	--Process password, salt.
@@ -43,7 +45,9 @@ function login(v, session)
 	local password = v.pass
 	local query = c.CreateQuery(common.cstr(SELECT_USER_LOGIN), request, db, 0)
 	c.BindParameter(query, common.cstr(v.user))
-	if c.SelectQuery(query) == DATABASE_QUERY_STARTED 
+	local res = c.SelectQuery(query) 
+	
+	if res == DATABASE_QUERY_STARTED 
 		and query.column_count == @icol(COLS_USER) then
 		local user = query.row
 		local userid = tonumber(common.appstr(user[0]))
@@ -53,7 +57,7 @@ function login(v, session)
 		local hashedpw = ""
 		if password ~= nil then hashedpw = hashPassword(password, salt) end
 		if userid ~= nil and userid > 0 and hashedpw == storedpw then	
-			r.session = c.NewSession(worker, r.host, r.user_agent)
+			r.session = c.NewSession(worker, request, r.host, r.user_agent)
 			c.SetSessionValue(r.session, common.cstr("userid"), user[0])
 			return _MESSAGE("LOGIN_SUCCESS", 1)
 		else
@@ -79,7 +83,8 @@ function updateUser(v, session, user, auth)
 	
 	--[[ Apply appropriate permissions ]]--
 	--Users cannot modify other users, default ID to modify is current user.
-	if auth == AUTH_USER or ((id == nil or id:len() == 0) and (target_user == nil or password == nil)) then 
+	if auth == AUTH_USER or ((id == nil or id:len() == 0) 
+		and (target_user == nil or password == nil)) then 
 		c.BindParameter(query, user[0])
 	elseif id ~= nil then
 		--User is admin, ID provided. Update existing user.
@@ -108,7 +113,9 @@ function updateUser(v, session, user, auth)
 	c.SelectQuery(query)
 	local lastrowid = tonumber(query.lastrowid)
 	if lastrowid > 0 or query.rows_affected > 0 then
-		return cjson.encode({msg="UPDATEUSER_SUCCESS", id = id or lastrowid, type=RESPONSE_TYPE_MESSAGE})
+		return cjson.encode({msg="UPDATEUSER_SUCCESS", 
+							id = id or lastrowid, 
+							type=RESPONSE_TYPE_MESSAGE})
 	else
 		return MESSAGE("UPDATEUSER_FAILED")
 	end

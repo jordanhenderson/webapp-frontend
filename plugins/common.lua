@@ -137,9 +137,11 @@ if not ret then new_table = function (narr, nrec) return {} end end
 M.new_table = new_table
 
 --Wait for n_bytes. Uses asio, yields.
-M.read_data = function(n_bytes)
-	
+M.read_data = function(socket, n_bytes, timeout)
+	local output = 
+		c.ReadData(socket, worker, request, n_bytes, timeout)
 	coroutine.yield()
+	return output
 end
 
 return M

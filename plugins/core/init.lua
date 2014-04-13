@@ -1,50 +1,55 @@
 @include 'plugins/constants.lua'
 
---Precompile (extra) scripts here.
-common = 					compile("plugins/common.lua")
-handlers, page_security = 	compile("plugins/core/handlers.lua")
+common = compile("plugins/common.lua")
 
-db = c.CreateDatabase()
-c.ConnectDatabase(db, DATABASE_TYPE_SQLITE, 
-				  "webapp.sqlite", nil, nil, nil)
+function initialise_database()
+	local db = c.CreateDatabase()
+	c.ConnectDatabase(db, DATABASE_TYPE_SQLITE, 
+					  "webapp.sqlite", nil, nil, nil)
+					  
+	c.ExecString(db, common.cstr(SQL_SESSION(DATABASE_TYPE_SQLITE)))
+	c.ExecString(db, common.cstr(PRAGMA_FOREIGN))
+	c.ExecString(db, common.cstr(BEGIN_TRANSACTION))
+	c.ExecString(db, common.cstr(SYSTEM_SCHEMA))
 
-c.ExecString(db, common.cstr(SQL_SESSION(DATABASE_TYPE_SQLITE)))
-c.ExecString(db, common.cstr(PRAGMA_FOREIGN))
-c.ExecString(db, common.cstr(BEGIN_TRANSACTION))
-c.ExecString(db, common.cstr(SYSTEM_SCHEMA))
+	--Handle database version management
+	local version = 0
+	local latest_version = #APP_SCHEMA
+	--Check the current version
+	local query = 
+		c.CreateQuery(common.cstr(SELECT_FIELD("value", "system", "key")), 
+					  request, db, 0)
 
---Handle database version management
-local version = 0
-local latest_version = #APP_SCHEMA
---Check the current version
-local query = 
-	c.CreateQuery(common.cstr(SELECT_FIELD("value", "system", "key")), 
-				  request, db, 0)
+	c.BindParameter(query, common.cstr("version"))
+	if c.SelectQuery(query) == DATABASE_QUERY_STARTED and 
+	   query.column_count == 1 then
+	   --Version field exists.
+		version = tonumber(common.appstr(query.row[0]))
+	end
 
-c.BindParameter(query, common.cstr("version"))
-if c.SelectQuery(query) == DATABASE_QUERY_STARTED and 
-   query.column_count == 1 then
-   --Version field exists.
-	version = tonumber(common.appstr(query.row[0]))
-end
-
---Execute each 'update'
-if version < latest_version then
-	for k,v in ipairs(APP_SCHEMA) do
-		if k > version then
-			for i, j in ipairs(common.split(v, ";")) do
-				c.ExecString(db, common.cstr(j))
+	--Execute each 'update'
+	if version < latest_version then
+		for k,v in ipairs(APP_SCHEMA) do
+			if k > version then
+				for i, j in ipairs(common.split(v, ";")) do
+					c.ExecString(db, common.cstr(j))
+				end
 			end
 		end
 	end
+
+	local version_str = "'version', " .. latest_version
+	--Update the stored schema version
+	c.ExecString(db, 
+		common.cstr(INSERT_FIELD("system", "key, value", version_str)))
+	c.ExecString(db, common.cstr(COMMIT_TRANSACTION))
 end
 
-local version_str = "'version', " .. latest_version
---Update the stored schema version
-c.ExecString(db, 
-	common.cstr(INSERT_FIELD("system", "key, value", version_str)))
-c.ExecString(db, common.cstr(COMMIT_TRANSACTION))
+--Initialise the database(s)
+initialise_database()
 
+--Load handlers. Requires initialised databases.
+local handlers, page_security = compile("plugins/core/handlers.lua")
 
 --Create a user, just in case.
 handlers.updateUser[2](

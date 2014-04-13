@@ -103,6 +103,7 @@ typedef struct {
 //Request handling
 typedef struct {
   webapp_str_t headers_buf;
+  void* socket;
   LuaRequest* r;
 } Request;
 
@@ -130,10 +131,23 @@ Request* GetNextRequest(void* worker);
 
 /*
 WriteData writes chunks of data to a request's socket.
-@param request the request object to write to
+@param socket the socket object to write to
 @param data the data chunk to write
 */
-void WriteData(void* request, webapp_str_t* data);
+void WriteData(void* socket, webapp_str_t* data);
+
+/*
+ReadData reads data from a socket asynchronously.
+Make sure to yield the current coroutine in order to prevent blocking.
+@param socket the socket object to read from
+@param worker the worker queue
+@param r the request
+@param bytes the amount of bytes to read
+@param timeout the amount of time, in seconds, to wait before aborting.
+@return the allocated buffer. Length set to 0 if timeout occurs.
+*/
+webapp_str_t* ReadData(void* socket, void* worker, Request* r,
+			  int bytes, int timeout);
 
 //Session Functions
 webapp_str_t* GetSessionValue(void*, webapp_str_t* key);
