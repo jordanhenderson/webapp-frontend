@@ -130,7 +130,7 @@ get_page: Returns a compiled page (base pages stored in /content)
 @param request the request object
 @returns a compiled template as a lua string.
 ]]--
-function get_page(uri_str, session, request)
+function get_page(uri_str, session)
 	local response = ""
 	local page = ""
 	local uri = uri_str.data
@@ -174,10 +174,9 @@ end
 process_api: process an API call.
 @param params: the parameters, decoded into a lua table ({string=>val})
 @param session: the session object
-@param request: the request object
 @returns the API response message to be sent to the client.
 ]]--
-function process_api(params, session, request)
+function process_api(params, session)
 	local tmp_response = "{}"
 	local func_str = params.t
 	local func = handlers[type(func_str) == "string" and func_str]
@@ -250,25 +249,22 @@ function handle_request()
 	local content_type = "text/html"
 	local uri_len = tonumber(r.uri.len)
 	local cache = 0
-	
-	if r.method == 8 then
-		r.request_body.data = 
-			common.read_data(request.socket, r.request_body.len, 1).data
-	end
-	
-	if uri_len > 3
+
+	if r.method == 8 and uri_len > 3
 		and r.uri.data[1] == 97 -- a
 		and r.uri.data[2] == 112 -- p
 		and r.uri.data[3] == 105 -- i
 		and r.uri.data[0] == 47 -- / (check last - just in case.)
 	then
+		r.request_body.data = 
+			common.read_data(request.socket, r.request_body.len, 1).data
 		content_type = "application/json"
 		response = 
 			process_api(cjson.decode(common.appstr(r.request_body)),
-						r.session, request)
+						r.session)
 	elseif uri_len >= 1 then
 		cache = 1
-		response = get_page(r.uri, r.session, request)
+		response = get_page(r.uri, r.session)
 	end
 	
 	local cookie = ""
@@ -300,7 +296,6 @@ function start_request()
 		pk = mp.pack(#pk) .. pk
 		response = pk
 	end
-
 	c.WriteData(request.socket, common.cstr(response))
 	return 1
 end
