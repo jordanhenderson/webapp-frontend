@@ -180,7 +180,7 @@ function process_api(params, session)
 	local tmp_response = "{}"
 	local func_str = params.t
 	local func = handlers[type(func_str) == "string" and func_str]
-	
+
 	local user = get_user(session)
 	local auth = tonumber(user and common.appstr(COL_USER("auth"))
 						  or AUTH_GUEST)
@@ -250,7 +250,7 @@ function handle_request()
 	local uri_len = tonumber(r.uri.len)
 	local cache = 0
 
-	if r.method == 8 and uri_len > 3
+	if r.method == 8 and uri_len > 3 and r.request_body.len > 0 
 		and r.uri.data[1] == 97 -- a
 		and r.uri.data[2] == 112 -- p
 		and r.uri.data[3] == 105 -- i
