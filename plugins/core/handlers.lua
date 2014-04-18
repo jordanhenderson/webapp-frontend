@@ -81,16 +81,6 @@ function updateUser(v, session, user, auth)
 	local target_auth = v.auth
 	local query = c.CreateQuery(nil, request, db, 0)
 	
-	--[[ Apply appropriate permissions ]]--
-	--Users cannot modify other users, default ID to modify is current user.
-	if auth == AUTH_USER or ((id == nil or id:len() == 0) 
-		and (target_user == nil or password == nil)) then 
-		c.BindParameter(query, user[0])
-	elseif id ~= nil then
-		--User is admin, ID provided. Update existing user.
-		c.BindParameter(query, common.cstr(id))
-	end
-	
 	--Restrict auth level changes.
 	if auth == AUTH_USER and target_auth then
 		target_auth = _STR_(AUTH_USER) --Users cannot change auth level.
@@ -107,6 +97,16 @@ function updateUser(v, session, user, auth)
 	--Generate the appropriate sql.
 	local sql = common.gensql(query, query_type, "users", "id", {COLS_USER}, 
 		target_user, pass, salt, target_auth)
+
+	--[[ Apply appropriate permissions ]]--
+	--Users cannot modify other users, default ID to modify is current user.
+	if auth == AUTH_USER or ((id == nil or id:len() == 0) 
+		and (target_user == nil or password == nil)) then
+		c.BindParameter(query, user[0])
+	elseif id ~= nil then
+		--User is admin, ID provided. Update existing user.
+		c.BindParameter(query, common.cstr(id))
+	end
 	
 	--Set then execute the query.
 	c.SetQuery(query, common.cstr(sql))
