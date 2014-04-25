@@ -136,12 +136,27 @@ if not ret then new_table = function (narr, nrec) return {} end end
 
 M.new_table = new_table
 
+M.connect = function(addr, port)
+	local socket = c.ConnectSocket(worker, request, 
+								   M.cstr(addr), M.cstr(port, 1))
+	coroutine.yield() --Socket (possibly) connects.
+	return socket
+end
+
 --Wait for n_bytes. Uses asio, yields.
 M.read_data = function(socket, n_bytes, timeout)
 	local output = 
 		c.ReadData(socket, worker, request, n_bytes, timeout)
 	coroutine.yield()
 	return output
+end
+
+M.write_data = function(socket, data)
+	c.WriteData(socket, M.cstr(data))
+end
+
+M.close = function(socket)
+	c.DestroySocket(socket)
 end
 
 return M

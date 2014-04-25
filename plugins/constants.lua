@@ -100,13 +100,17 @@ typedef struct {
   void* session;
 } LuaRequest;
 
+typedef struct {
+  int8_t status;
+  /* ... socket ... */
+} LuaSocket;
+
 //Request handling
 typedef struct {
   webapp_str_t headers_buf;
-  void* socket;
+  LuaSocket* socket;
   LuaRequest* r;
 } Request;
-
 
 void SetParamInt(unsigned int param, int value);
 int GetParamInt(unsigned int param);
@@ -130,11 +134,30 @@ when there are none available).
 Request* GetNextRequest(void* worker);
 
 /*
+ConnectSocket creates and returns a socket object.
+The socket will be resolved then connected asynchronously.
+Yield after calling this function.
+@param worker the request worker
+@param r the request
+@param addr the destination address to connect to.
+@param port the destination port to connect to.
+@returns a Socket object. Must be destroyed using DestroySocket.
+*/
+LuaSocket* ConnectSocket(void* worker, Request* r, webapp_str_t* addr, 
+					  webapp_str_t* port);
+					  
+/*
+DestroySocket destroys a socket object.
+@param socket the socket object to destroy.
+*/
+void DestroySocket(LuaSocket* socket);
+
+/*
 WriteData writes chunks of data to a request's socket.
 @param socket the socket object to write to
 @param data the data chunk to write
 */
-void WriteData(void* socket, webapp_str_t* data);
+void WriteData(LuaSocket* socket, webapp_str_t* data);
 
 /*
 ReadData reads data from a socket asynchronously.
@@ -146,7 +169,7 @@ Make sure to yield the current coroutine in order to prevent blocking.
 @param timeout the amount of time, in seconds, to wait before aborting.
 @return the allocated buffer. Length set to 0 if timeout occurs.
 */
-webapp_str_t* ReadData(void* socket, void* worker, Request* r,
+webapp_str_t* ReadData(LuaSocket* socket, void* worker, Request* r,
 			  int bytes, int timeout);
 
 //Session Functions
