@@ -134,6 +134,13 @@ when there are none available).
 Request* GetNextRequest(void* worker);
 
 /*
+QueueRequest pushes the provided request back onto the request queue.
+@param worker the request worker
+@param request the request
+*/
+void QueueRequest(void* worker, Request*);
+
+/*
 ConnectSocket creates and returns a socket object.
 The socket will be resolved then connected asynchronously.
 Yield after calling this function.
