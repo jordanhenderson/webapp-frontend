@@ -141,6 +141,14 @@ QueueRequest pushes the provided request back onto the request queue.
 void QueueRequest(void* worker, Request*);
 
 /*
+SocketAvailable returns the amount of bytes available to read() from the
+socket.
+@param socket the socket object.
+@returns the size in bytes that is ready to be read from the socket.
+*/
+int SocketAvailable(LuaSocket* socket);
+
+/*
 ConnectSocket creates and returns a socket object.
 The socket will be resolved then connected asynchronously.
 Yield after calling this function.
