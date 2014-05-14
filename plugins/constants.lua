@@ -216,8 +216,7 @@ void Template_Clear(void*);
 
 //Database Functions
 typedef struct {
-  int nError; 
-  size_t db_type;
+  int db_type;
 } Database;
 typedef struct {
   int status; 
@@ -228,6 +227,8 @@ typedef struct {
   int need_desc;
   int have_desc;
   int rows_affected;
+  webapp_str_t dbq;
+  webapp_str_t err;
 } Query;
 
 /*
