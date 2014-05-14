@@ -12,8 +12,8 @@ struct tm {
   int tm_yday;
   int tm_isdst;
 };
-void GetTime(struct tm*);
-void UpdateTime(struct tm*);
+void Time_Get(struct tm*);
+void Time_Update(struct tm*);
 ]]
 c = ffi.C
 
@@ -34,14 +34,14 @@ end
 
 function Time:add_days(days)
 	self.s.tm_mday = self.s.tm_mday + days
-	c.UpdateTime(self.s)
+	c.Time_Update(self.s)
 end
 
 M.nowutc = function()
 	local t = {}
 	setmetatable(t, Time)
 	t.s = ffi.new("struct tm")
-	c.GetTime(t.s)
+	c.Time_Get(t.s)
 	return t
 end
 
@@ -50,7 +50,7 @@ M.todate = function(date_string)
 	local t = {}
 	setmetatable(t, Time)
 	t.s = ffi.new("struct tm")
-	c.UpdateTime(t.s)
+	c.Time_Get(t.s)
 	return t
 end
 

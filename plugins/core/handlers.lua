@@ -4,7 +4,7 @@ math.randomseed(os.time())
 sha2 = require "sha2"
 time = require "time"
 
-local db = c.GetDatabase(0)
+local db = c.Database_Get(0)
 
 function hashPassword(password, salt)
 	local pass --hashed password.
@@ -25,7 +25,7 @@ function dump_query(query)
 	local hasdesc = false
 	data = {}
 	desc = {}
-	if c.SelectQuery(query) == DATABASE_QUERY_STARTED then
+	if c.Query_Select(query) == DATABASE_QUERY_STARTED then
 		repeat
 		row = {}
 		for i=0, query.column_count - 1 do
@@ -36,16 +36,16 @@ function dump_query(query)
 		end
 		data[#data+1] = row
 		hasdesc = true
-		until c.SelectQuery(query) == DATABASE_QUERY_FINISHED
+		until c.Query_Select(query) == DATABASE_QUERY_FINISHED
 	end
 	return data
 end
 
-function login(v, session)
+function login(v)
 	local password = v.pass
-	local query = c.CreateQuery(common.cstr(SELECT_USER_LOGIN), request, db, 0)
-	c.BindParameter(query, common.cstr(v.user))
-	local res = c.SelectQuery(query) 
+	local query = c.Query_Create(db, common.cstr(SELECT_USER_LOGIN))
+	c.Query_Bind(query, common.cstr(v.user))
+	local res = c.Query_Select(query) 
 	
 	if res == DATABASE_QUERY_STARTED 
 		and query.column_count == @icol(COLS_USER) then
@@ -57,8 +57,9 @@ function login(v, session)
 		local hashedpw = ""
 		if password ~= nil then hashedpw = hashPassword(password, salt) end
 		if userid ~= nil and userid > 0 and hashedpw == storedpw then	
-			r.session = c.NewSession(worker, request, r.host, r.user_agent)
-			c.SetSessionValue(r.session, common.cstr("userid"), user[0])
+			local uid = common.appstr(r.host) .. common.appstr(r.user_agent)
+			r.session = c.Session_New(worker, common.cstr(uid))
+			c.Session_SetValue(r.session, common.cstr("userid"), user[0])
 			return _MESSAGE("LOGIN_SUCCESS", 1)
 		else
 			return MESSAGE("LOGIN_FAILED")
@@ -68,18 +69,19 @@ function login(v, session)
 	end
 end
 
-function logout(vars, session)
-	c.DestroySession(session)
+function logout(vars)
+	c.Session_Destroy(r.session)
+	r.session = nil
 	return _MESSAGE("LOGOUT_SUCCESS", 1)
 end
 
-function updateUser(v, session, user, auth)
+function updateUser(v, user, auth)
 	--Input variables.
 	local id = v.id
 	local target_user = v.user
 	local password = v.pass
 	local target_auth = v.auth
-	local query = c.CreateQuery(nil, request, db, 0)
+	local query = c.Query_Create(db, nil)
 	
 	--Restrict auth level changes.
 	if auth == AUTH_USER and target_auth then
@@ -102,15 +104,15 @@ function updateUser(v, session, user, auth)
 	--Users cannot modify other users, default ID to modify is current user.
 	if auth == AUTH_USER or ((id == nil or id:len() == 0) 
 		and (target_user == nil or password == nil)) then
-		c.BindParameter(query, user[0])
+		c.Query_Bind(query, user[0])
 	elseif id ~= nil then
 		--User is admin, ID provided. Update existing user.
-		c.BindParameter(query, common.cstr(id))
+		c.Query_Bind(query, common.cstr(id))
 	end
 	
 	--Set then execute the query.
-	c.SetQuery(query, common.cstr(sql))
-	c.SelectQuery(query)
+	c.Query_Set(query, common.cstr(sql))
+	c.Query_Select(query)
 	local lastrowid = tonumber(query.lastrowid)
 	if lastrowid > 0 or query.rows_affected > 0 then
 		return cjson.encode({msg="UPDATEUSER_SUCCESS", 
@@ -121,17 +123,17 @@ function updateUser(v, session, user, auth)
 	end
 end
 
-function clearCache(vars, session)
-	c.ClearCache(worker)
+function clearCache(vars)
+	c.Worker_ClearCache(worker)
 	return MESSAGE("CACHE_CLEARED")
 end
 
-function shutdown(vars, session)
-	c.Shutdown(worker)
+function shutdown(vars)
+	c.Worker_Shutdown(worker)
 	return MESSAGE("SHUTTING_DOWN")
 end
 
-function handleTemplate(template, page, session, user, auth)
+function handleTemplate(template, page, user, auth)
 	--TODO: Place further template logic here.
 	c.Template_Clear(template)
 	if auth == AUTH_GUEST then

@@ -90,6 +90,16 @@ typedef struct {
 } webapp_str_t;
 
 typedef struct {
+  int8_t status;
+  /* ... socket ... */
+} LuaSocket;
+
+typedef struct {
+  webapp_str_t id;
+  /* ... session ... */
+} Session;
+
+typedef struct {
   int32_t co;
   webapp_str_t cookies;
   webapp_str_t host;
@@ -97,85 +107,81 @@ typedef struct {
   webapp_str_t user_agent;
   webapp_str_t request_body;
   int method;
-  void* session;
+  Session* session;
 } LuaRequest;
-
-typedef struct {
-  int8_t status;
-  /* ... socket ... */
-} LuaSocket;
 
 //Request handling
 typedef struct {
   webapp_str_t headers_buf;
   LuaSocket* socket;
   LuaRequest* r;
+  /* ... request ... */
 } Request;
 
-void SetParamInt(unsigned int param, int value);
-int GetParamInt(unsigned int param);
-void ClearCache(void* worker);
-void Shutdown(void* worker);
-void DestroySession(void* session);
-webapp_str_t* CompileScript(const char* script);
+void String_Destroy(webapp_str_t*);
+void Worker_ClearCache(void* worker);
+void Worker_Shutdown(void* worker);
+webapp_str_t* Script_Compile(const char* script);
+void Param_Set(unsigned int param, int value);
+int Param_Get(unsigned int param);
 
 /*
-FinishRequest finalises and cleans up a request object
+Request_Finish finalises and cleans up a request object
 @param Request the request object
 */
-void FinishRequest(Request*);
+void Request_Finish(Request*);
 
 /*
-GetNextRequest pops the next request from the request queue (or blocks
+Request_GetNext pops the next request from the request queue (or blocks
 when there are none available).
 @param worker the request worker
 @returns the request object, or nil if the worker should abort.
 */
-Request* GetNextRequest(void* worker);
+Request* Request_GetNext(void* worker);
 
 /*
-QueueRequest pushes the provided request back onto the request queue.
+Request_Queue pushes the provided request back onto the request queue.
 @param worker the request worker
 @param request the request
 */
-void QueueRequest(void* worker, Request*);
+void Request_Queue(void* worker, Request*);
 
 /*
-SocketAvailable returns the amount of bytes available to read() from the
+Socket_DataAvailable returns the amount of bytes available to read() from the
 socket.
 @param socket the socket object.
 @returns the size in bytes that is ready to be read from the socket.
 */
-int SocketAvailable(LuaSocket* socket);
+int Socket_DataAvailable(LuaSocket* socket);
 
 /*
-ConnectSocket creates and returns a socket object.
+Socket_Connect creates and returns a socket object.
 The socket will be resolved then connected asynchronously.
 Yield after calling this function.
 @param worker the request worker
 @param r the request
 @param addr the destination address to connect to.
 @param port the destination port to connect to.
-@returns a Socket object. Must be destroyed using DestroySocket.
+@returns a Socket object. Must be destroyed using Socket_Destroy.
 */
-LuaSocket* ConnectSocket(void* worker, Request* r, webapp_str_t* addr, 
+LuaSocket* Socket_Connect(void* worker, Request* r, webapp_str_t* addr, 
 					  webapp_str_t* port);
 					  
 /*
-DestroySocket destroys a socket object.
+Socket_Destroy destroys a socket object.
 @param socket the socket object to destroy.
 */
-void DestroySocket(LuaSocket* socket);
+void Socket_Destroy(LuaSocket* socket);
 
 /*
-WriteData writes chunks of data to a request's socket.
+Socket_Write writes chunks of data to a request's socket.
 @param socket the socket object to write to
 @param data the data chunk to write
 */
-void WriteData(LuaSocket* socket, webapp_str_t* data);
+void Socket_Write(LuaSocket* socket, webapp_str_t* data);
 
 /*
-ReadData reads data from a socket asynchronously.
+Socket_Read reads data from a socket asynchronously.
 Make sure to yield the current coroutine in order to prevent blocking.
 @param socket the socket object to read from
 @param worker the worker queue
@@ -184,27 +190,27 @@ Make sure to yield the current coroutine in order to prevent blocking.
 @param timeout the amount of time, in seconds, to wait before aborting.
 @return the allocated buffer. Length set to 0 if timeout occurs.
 */
-webapp_str_t* ReadData(LuaSocket* socket, void* worker, Request* r,
+webapp_str_t* Socket_Read(LuaSocket* socket, void* worker, Request* r,
 			  int bytes, int timeout);
 
 //Session Functions
-webapp_str_t* GetSessionValue(void*, webapp_str_t* key);
-int SetSessionValue(void*, webapp_str_t* key, webapp_str_t* val);
+webapp_str_t* Session_GetValue(Session*, webapp_str_t* key);
+void Session_SetValue(Session*, webapp_str_t* key, webapp_str_t* val);
 
 /*
-GetCookieSession creates a new session object for the existing session
+Session_GetFromCookies creates a new session object for the existing session
 identified by the cookie string (which must contain a sessionid= cookie.
 @param worker the request worker
 @param r the request object
 @param cookies the cookies string
 */
-void* GetCookieSession(void* worker, Request* r, webapp_str_t* cookies);
-void* GetSession(void*, Request*, webapp_str_t* session_id);
-void* NewSession(void*, Request*, webapp_str_t* pri, webapp_str_t* sec);
-webapp_str_t* GetSessionID(void*);
+Session* Session_GetFromCookies(void* worker, webapp_str_t* cookies);
+Session* Session_Get(void* worker, webapp_str_t* id);
+Session* Session_New(void* worker, webapp_str_t* uid);
+void Session_Destroy(Session* session);
 
 //Template Functions
-webapp_str_t* Template_Render(void*, webapp_str_t*, Request*);
+webapp_str_t* Template_Render(void*, webapp_str_t*);
 void* Template_Get(void*, webapp_str_t*);
 void Template_Load(webapp_str_t* page);
 void Template_Include(webapp_str_t* name, webapp_str_t* file);
@@ -232,13 +238,13 @@ typedef struct {
 } Query;
 
 /*
-CreateDatabase creates a new database object
+Database_Create creates a new database object
 @returns the created Database object.
 */
-Database* CreateDatabase();
+Database* Database_Create();
 
 /*
-ConnectDatabase connects a database object to a provider.
+Database_Connect connects a database object to a provider.
 Currently supported: SQLite, MySQL.
 @param db the database object
 @param database_type the type of provider
@@ -248,61 +254,58 @@ Currently supported: SQLite, MySQL.
 @param database the database to use (for multi-database systems)
 @returns the status of database connection success
 */
-int ConnectDatabase(Database* db, int database_type, const char* host, 
+int Database_Connect(Database* db, int database_type, const char* host, 
 	const char* username, const char* password, const char* database);
 
 /*
-DestroyDatabase destroys a database object
+Database_Destroy destroys a database object
 @param db the database object to destroy
 */
-void DestroyDatabase(Database* db);
+void Database_Destroy(Database* db);
 
 /*
-GetDatabase returns a database given the specified id.
+Database_Get returns a database given the specified id.
 @param id the database id
 @returns the database object, or null if non existent
 */
-Database* GetDatabase(size_t id);
+Database* Database_Get(size_t id);
 
 /*
-CreateQuery creates a query object.
-@param qry_str the query string. Can be set later using SetQuery.
-@param r the request object
+Query_Create creates a query object.
+@param qry_str the query string. Can be set later using Query_Set.
 @param db the database object
-@param desc whether to populate the row description fields
 @returns the query object.
 */
-Query* CreateQuery(webapp_str_t* qry_str, 
-				   Request* r, Database* db, int desc);
+Query* Query_Create(Database* db, webapp_str_t* qry_str);
 
 /*
-SetQuery sets the string of a query object.
+Query_Set sets the string of a query object.
 @param query the query object to set
 @param qry_str the new query string
 */
-void SetQuery(Query* query, webapp_str_t* qry_str);
+void Query_Set(Query* query, webapp_str_t* qry_str);
 
 /*
-BindParameter binds a parameter to a query
+Query_Bind binds a parameter to a query
 @param query the query object
 @param the parameter to bind
 */
-void BindParameter(Query* query, webapp_str_t* param);
+void Query_Bind(Query* query, webapp_str_t* param);
 
 /*
-SelectQuery executes a query, storing any values returned in the query
+Query_Select executes a query, storing any values returned in the query
 object.
 @param query the query object
 @returns the query status (query.status) after execution.
 */
-int SelectQuery(Query* query);
+int Query_Select(Query* query);
 
 /*
-ExecString executes a string, returning the queries last row id.
+Database_Exec executes a string, returning the queries last row id.
 @param db the database object
 @param qry_str the query string to execute
 */
-int64_t ExecString(Database* db, webapp_str_t* qry_str);
+int64_t Database_Exec(Database* db, webapp_str_t* qry_str);
 
 typedef struct {
   webapp_str_t name;
@@ -312,6 +315,7 @@ typedef struct {
 
 File* File_Open(webapp_str_t* filename, webapp_str_t* mode);
 void File_Close(File* f);
+void File_Destroy(File* f);
 int16_t File_Read(File* f, int16_t n_bytes);
 void File_Write(File* f, webapp_str_t* buf);
 int64_t File_Size(File* f);
@@ -344,7 +348,7 @@ int tinydir_readfile(Directory*, DirFile*);
 c = ffi.C
 
 function compile(file)
-	local bc_raw = c.CompileScript(file)
+	local bc_raw = c.Script_Compile(file)
 	local bc = ffi.string(bc_raw.data, tonumber(bc_raw.len))
 	return loadstring(bc)()
 end

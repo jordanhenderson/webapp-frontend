@@ -105,7 +105,7 @@ M.gensql = function(query, query_type, tbl, cond, validcols, ...)
 		for k,v in ipairs(validcols) do
 			local val = select(k, ...)
 			if val ~= nil then
-				c.BindParameter(query, M.cstr(val))
+				c.Query_Bind(query, M.cstr(val))
 				cols = cols .. v .. ","
 				col_count = col_count + 1
 			end
@@ -118,7 +118,7 @@ M.gensql = function(query, query_type, tbl, cond, validcols, ...)
 		for k,v in ipairs(validcols) do
 			local val = select(k, ...)
 			if val ~= nil then
-				c.BindParameter(query, M.cstr(val))
+				c.Query_Bind(query, M.cstr(val))
 				set = set .. v .. "=" .. "?,"
 			end
 		end
@@ -137,7 +137,7 @@ if not ret then new_table = function (narr, nrec) return {} end end
 M.new_table = new_table
 
 M.connect = function(addr, port)
-	local socket = c.ConnectSocket(worker, request, 
+	local socket = c.Socket_Connect(worker, request, 
 								   M.cstr(addr), M.cstr(port, 1))
 	coroutine.yield() --Socket (possibly) connects.
 	return socket
@@ -146,17 +146,17 @@ end
 --Wait for n_bytes. Uses asio, yields.
 M.read_data = function(socket, n_bytes, timeout)
 	local output = 
-		c.ReadData(socket, worker, request, n_bytes, timeout)
+		c.Socket_Read(socket, worker, request, n_bytes, timeout)
 	coroutine.yield()
 	return output
 end
 
 M.write_data = function(socket, data)
-	c.WriteData(socket, M.cstr(data))
+	c.Socket_Write(socket, M.cstr(data))
 end
 
 M.close = function(socket)
-	c.DestroySocket(socket)
+	c.Socket_Destroy(socket)
 end
 
 return M

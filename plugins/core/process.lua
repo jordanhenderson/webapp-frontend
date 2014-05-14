@@ -8,7 +8,7 @@ common = 							compile("plugins/common.lua")
 local handlers, page_security = 	compile("plugins/core/handlers.lua")
 
 --Get the application level database. 
-local db = c.GetDatabase(0)
+local db = c.Database_Get(0)
 
 --base_template: the base page template.
 local base_template = c.Template_Get(worker, nil)
@@ -106,17 +106,16 @@ end
 
 --[[
 get_user: Retrieves the user object of the current user.
-@param session the session object
 @returns a row containing user variables, or nil if an error occured.
 ]]--
-function get_user(session) 
-	local userid = c.GetSessionValue(session, common.cstr("userid"))
+function get_user() 
+	local userid = c.Session_GetValue(r.session, common.cstr("userid"))
 	if userid ~= nil and userid.len > 0 then
 		--Lookup user auth level.
 		local query = 
-			c.CreateQuery(common.cstr(SELECT_USER), request, db, 0)
-		c.BindParameter(query, userid)
-		if c.SelectQuery(query) == DATABASE_QUERY_STARTED and 
+			c.Query_Create(db, common.cstr(SELECT_USER))
+		c.Query_Bind(query, userid)
+		if c.Query_Select(query) == DATABASE_QUERY_STARTED and 
 		   query.column_count == @icol(COLS_USER) then
 			return query.row
 		end
@@ -126,11 +125,10 @@ end
 --[[
 get_page: Returns a compiled page (base pages stored in /content)
 @param uri_str the page to render. If empty, index is assumed.
-@param session the session object
 @param request the request object
 @returns a compiled template as a lua string.
 ]]--
-function get_page(uri_str, session)
+function get_page(uri_str)
 	local response = ""
 	local page = ""
 	local uri = uri_str.data
@@ -145,7 +143,7 @@ function get_page(uri_str, session)
 		page = string.sub(uristr, math.min(2, string.len(uristr)), f)
 	end
 	
-	local user = get_user(session)
+	local user = get_user()
 	local auth = 
 		tonumber(user and common.appstr(COL_USER("auth")) or AUTH_GUEST) 
 	if page_security[page] and auth < page_security[page] then
@@ -157,15 +155,12 @@ function get_page(uri_str, session)
 		-- Template process code.
 		local handleTemplate = handlers.handleTemplate
 		if handleTemplate ~= nil then
-			handleTemplate[2](base_template, page, session, user, auth)
+			handleTemplate[2](base_template, page, user, auth)
 		end
 		-- End template process code.
-		local content = 
-			c.Template_Render(worker, common.cstr(page_full), request)
-		
-		if content then
-			response = common.appstr(content)
-		end
+		local content = c.Template_Render(worker, common.cstr(page_full))
+		response = common.appstr(content)
+		c.String_Destroy(content)
 	end
 	return response
 end
@@ -176,7 +171,7 @@ process_api: process an API call.
 @param session: the session object
 @returns the API response message to be sent to the client.
 ]]--
-function process_api(params, session)
+function process_api(params)
 	local tmp_response = "{}"
 	local func_str = params.t
 	local func = handlers[type(func_str) == "string" and func_str]
@@ -186,7 +181,7 @@ function process_api(params, session)
 						  or AUTH_GUEST)
 	
 	if func ~= nil and auth >= func[1] then
-		local ret = func[2](params, session, user, auth)
+		local ret = func[2](params, user, auth)
 		if ret then
 			tmp_response = ret
 		else
@@ -243,7 +238,7 @@ function handle_request()
 	r.host.data, r.host.len = 			  get_buffer(u)
 	r.user_agent.data, r.user_agent.len = get_buffer(u)
 	r.cookies.data, r.cookies.len = 	  get_buffer(u)
-	r.session = c.GetCookieSession(worker, request, r.cookies)
+	r.session = c.Session_GetFromCookies(worker, r.cookies)
 	
 	local response = ""
 	local content_type = "text/html"
@@ -260,18 +255,17 @@ function handle_request()
 			common.read_data(request.socket, r.request_body.len, 1).data
 		content_type = "application/json"
 		response = 
-			process_api(cjson.decode(common.appstr(r.request_body)),
-						r.session)
+			process_api(cjson.decode(common.appstr(r.request_body)))
 	elseif uri_len >= 1 then
 		cache = 1
-		response = get_page(r.uri, r.session)
+		response = get_page(r.uri)
 	end
 	
 	local cookie = ""
 	if r.session ~= nil then -- Session created?
 		cookie = 
 			gen_cookie("sessionid", 
-					   common.appstr(c.GetSessionID(r.session)), 7)
+					   common.appstr(r.session.id), 7)
 	end
 	
 	local pk = mp.pack(#response) .. 
@@ -295,7 +289,7 @@ function start_request()
 		pk = mp.pack(#pk) .. pk
 		response = pk
 	end
-	c.WriteData(request.socket, common.cstr(response))
+	c.Socket_Write(request.socket, common.cstr(response))
 	return 1
 end
 
@@ -308,8 +302,9 @@ end
 local ev = coroutine.create(run_coroutine)
 --use event_ctr to 'round-robin' events, to speed up empty event finding
 local event_ctr = 1
+local derp = 0
 
-request = c.GetNextRequest(worker)
+request = c.Request_GetNext(worker)
 while request ~= nil do
 	r = request.r
 	local co = tonumber(r.co)
@@ -364,7 +359,9 @@ while request ~= nil do
 		--event has finished. Ensure we clear out the old coroutine.
 		if co > 0 then events[co] = nil end
 		--Clean up the request
-		c.FinishRequest(request)
+		c.Request_Finish(request)
+		print("Finished: " .. derp)
+		derp = derp + 1
 	end
-	request = c.GetNextRequest(worker)
+	request = c.Request_GetNext(worker)
 end

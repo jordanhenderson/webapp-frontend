@@ -3,25 +3,24 @@
 common = compile("plugins/common.lua")
 
 function initialise_database()
-	local db = c.CreateDatabase()
-	c.ConnectDatabase(db, DATABASE_TYPE_SQLITE, 
+	local db = c.Database_Create()
+	c.Database_Connect(db, DATABASE_TYPE_SQLITE, 
 					  "webapp.sqlite", nil, nil, nil)
 					  
-	c.ExecString(db, common.cstr(SQL_SESSION(DATABASE_TYPE_SQLITE)))
-	c.ExecString(db, common.cstr(PRAGMA_FOREIGN))
-	c.ExecString(db, common.cstr(BEGIN_TRANSACTION))
-	c.ExecString(db, common.cstr(SYSTEM_SCHEMA))
+	c.Database_Exec(db, common.cstr(SQL_SESSION(DATABASE_TYPE_SQLITE)))
+	c.Database_Exec(db, common.cstr(PRAGMA_FOREIGN))
+	c.Database_Exec(db, common.cstr(BEGIN_TRANSACTION))
+	c.Database_Exec(db, common.cstr(SYSTEM_SCHEMA))
 
 	--Handle database version management
 	local version = 0
 	local latest_version = #APP_SCHEMA
 	--Check the current version
 	local query = 
-		c.CreateQuery(common.cstr(SELECT_FIELD("value", "system", "key")), 
-					  request, db, 0)
+		c.Query_Create(db, common.cstr(SELECT_FIELD("value", "system", "key")))
 
-	c.BindParameter(query, common.cstr("version"))
-	if c.SelectQuery(query) == DATABASE_QUERY_STARTED and 
+	c.Query_Bind(query, common.cstr("version"))
+	if c.Query_Select(query) == DATABASE_QUERY_STARTED and 
 	   query.column_count == 1 then
 	   --Version field exists.
 		version = tonumber(common.appstr(query.row[0]))
@@ -32,7 +31,7 @@ function initialise_database()
 		for k,v in ipairs(APP_SCHEMA) do
 			if k > version then
 				for i, j in ipairs(common.split(v, ";")) do
-					c.ExecString(db, common.cstr(j))
+					c.Database_Exec(db, common.cstr(j))
 				end
 			end
 		end
@@ -40,9 +39,9 @@ function initialise_database()
 
 	local version_str = "'version', " .. latest_version
 	--Update the stored schema version
-	c.ExecString(db, 
+	c.Database_Exec(db, 
 		common.cstr(INSERT_FIELD("system", "key, value", version_str)))
-	c.ExecString(db, common.cstr(COMMIT_TRANSACTION))
+	c.Database_Exec(db, common.cstr(COMMIT_TRANSACTION))
 end
 
 --Initialise the database(s)
@@ -76,12 +75,12 @@ end
 --[[
 Optional:
 Enable/Disable template caching (for debug purposes): 
-	c.SetParamInt(WEBAPP_PARAM_TPLCACHE, 0)
+	c.Param_Set(WEBAPP_PARAM_TPLCACHE, 0)
 Enable/Disable leveldb support (uses three threads, enabled by default): 
-	c.SetParamInt(WEBAPP_PARAM_LEVELDB, 0)
+	c.Param_Set(WEBAPP_PARAM_LEVELDB, 0)
 Set the number of preferred threads (request handlers).
 This value is negated by 3 if leveldb is enabled.
-	c.SetParamInt(WEBAPP_PARAM_THREADS, 2)
+	c.Param_Set(WEBAPP_PARAM_THREADS, 2)
 	
 --]]
 
@@ -90,4 +89,4 @@ Important:
 Specify the size, in bytes, of the custom request struct allocated by
 webapp for the VM.
 ]]
-c.SetParamInt(WEBAPP_PARAM_REQUESTSIZE, ffi.sizeof("LuaRequest"))
+c.Param_Set(WEBAPP_PARAM_REQUESTSIZE, ffi.sizeof("LuaRequest"))
