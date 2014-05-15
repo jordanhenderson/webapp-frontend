@@ -25,19 +25,20 @@ M.setstr = function(str, dest)
 	end
 end
 
-M.cstr = function(str, idx)
-	if idx == nil then
-		idx = 0
-	end
-	M.setstr(str, M.wstr[idx])
-	return M.wstr[idx]
+--Handle temporary string storage
+local ctr = 0
+local max_strings = c.Param_Get(SERVER_PARAM_STRINGS)
+
+M.cstr = function(str)
+	local s = M.wstr[ctr]
+	ctr = ctr + 1 % max_strings
+	M.setstr(str, s)
+	return s
 end
 
-M.buffer = function(str, len, idx)
-	if idx == nil then
-		idx = 0
-	end
-	local s = M.wstr[idx]
+M.buffer = function(str, len)
+	local s = M.wstr[ctr]
+	ctr = ctr + 1 % max_strings
 	s.data = str
 	s.len = len
 	return s
