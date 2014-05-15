@@ -17,12 +17,16 @@
 @def DATABASE_QUERY_INIT 0
 @def DATABASE_QUERY_STARTED 1
 @def DATABASE_QUERY_FINISHED 2
-@def WEBAPP_PARAM_PORT 0
-@def WEBAPP_PARAM_ABORTED 1
-@def WEBAPP_PARAM_TPLCACHE 2
-@def WEBAPP_PARAM_LEVELDB 3
-@def WEBAPP_PARAM_THREADS 4
-@def WEBAPP_PARAM_REQUESTSIZE 5
+@def SERVER_PARAM_PORT 0
+@def SERVER_PARAM_ABORTED 1
+@def SERVER_PARAM_TPLCACHE 2
+@def SERVER_PARAM_LEVELDB 3
+@def SERVER_PARAM_THREADS 4
+@def SERVER_PARAM_REQUESTSIZE 5
+@def SERVER_PARAM_CLIENTSOCKETS 6
+@def SERVER_PARAM_STRINGS 6
+@def SERVER_PARAM_TEMPLATES 7
+@def SERVER_PARAM_STRINGS 8
 
 @def QUERY_TYPE_INSERT 0
 @def QUERY_TYPE_UPDATE 1
@@ -272,11 +276,19 @@ Database* Database_Get(size_t id);
 
 /*
 Query_Create creates a query object.
+Note: You should use ffi.gc to automatically destroy the query using 
+Query_Destroy.
 @param qry_str the query string. Can be set later using Query_Set.
 @param db the database object
 @returns the query object.
 */
 Query* Query_Create(Database* db, webapp_str_t* qry_str);
+
+/*
+Query_Destroy destroys a query object.
+@param qry the query object to destroy.
+*/
+void Query_Destroy(Query* qry);
 
 /*
 Query_Set sets the string of a query object.

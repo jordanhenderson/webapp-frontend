@@ -113,7 +113,7 @@ function get_user()
 	if userid ~= nil and userid.len > 0 then
 		--Lookup user auth level.
 		local query = 
-			c.Query_Create(db, common.cstr(SELECT_USER))
+			common.query_create(db, SELECT_USER)
 		c.Query_Bind(query, userid)
 		if c.Query_Select(query) == DATABASE_QUERY_STARTED and 
 		   query.column_count == @icol(COLS_USER) then

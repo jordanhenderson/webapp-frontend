@@ -17,7 +17,7 @@ function initialise_database()
 	local latest_version = #APP_SCHEMA
 	--Check the current version
 	local query = 
-		c.Query_Create(db, common.cstr(SELECT_FIELD("value", "system", "key")))
+		common.query_create(db, SELECT_FIELD("value", "system", "key"))
 
 	c.Query_Bind(query, common.cstr("version"))
 	if c.Query_Select(query) == DATABASE_QUERY_STARTED and 
@@ -75,12 +75,12 @@ end
 --[[
 Optional:
 Enable/Disable template caching (for debug purposes): 
-	c.Param_Set(WEBAPP_PARAM_TPLCACHE, 0)
+	c.Param_Set(SERVER_PARAM_TPLCACHE, 0)
 Enable/Disable leveldb support (uses three threads, enabled by default): 
-	c.Param_Set(WEBAPP_PARAM_LEVELDB, 0)
+	c.Param_Set(SERVER_PARAM_LEVELDB, 0)
 Set the number of preferred threads (request handlers).
 This value is negated by 3 if leveldb is enabled.
-	c.Param_Set(WEBAPP_PARAM_THREADS, 2)
+	c.Param_Set(SERVER_PARAM_THREADS, 2)
 	
 --]]
 
@@ -89,4 +89,4 @@ Important:
 Specify the size, in bytes, of the custom request struct allocated by
 webapp for the VM.
 ]]
-c.Param_Set(WEBAPP_PARAM_REQUESTSIZE, ffi.sizeof("LuaRequest"))
+c.Param_Set(SERVER_PARAM_REQUESTSIZE, ffi.sizeof("LuaRequest"))

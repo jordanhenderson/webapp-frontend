@@ -43,7 +43,7 @@ end
 
 function login(v)
 	local password = v.pass
-	local query = c.Query_Create(db, common.cstr(SELECT_USER_LOGIN))
+	local query = common.query_create(db, SELECT_USER_LOGIN)
 	c.Query_Bind(query, common.cstr(v.user))
 	local res = c.Query_Select(query) 
 	
@@ -81,7 +81,7 @@ function updateUser(v, user, auth)
 	local target_user = v.user
 	local password = v.pass
 	local target_auth = v.auth
-	local query = c.Query_Create(db, nil)
+	local query = common.query_create(db, nil)
 	
 	--Restrict auth level changes.
 	if auth == AUTH_USER and target_auth then

@@ -33,6 +33,16 @@ M.cstr = function(str, idx)
 	return M.wstr[idx]
 end
 
+M.buffer = function(str, len, idx)
+	if idx == nil then
+		idx = 0
+	end
+	local s = M.wstr[idx]
+	s.data = str
+	s.len = len
+	return s
+end
+
 M.unescape = function(str)
 	str = string.gsub(str, "+", " ")
 	str = string.gsub(str, "%%(%x%x)", function (h)
@@ -128,6 +138,14 @@ M.gensql = function(query, query_type, tbl, cond, validcols, ...)
 		end
 		return "UPDATE " .. tbl .. " SET " .. set .. " WHERE " .. cond .. "=?;"
 	end
+end
+
+M.query_create = function(db, qry, desc)
+	desc = desc or 0
+	qry = qry and M.cstr(qry)
+	local q = ffi.gc(c.Query_Create(db, qry), c.Query_Destroy)
+	q.need_desc = desc
+	return q
 end
 
 --Preallocate tables.
