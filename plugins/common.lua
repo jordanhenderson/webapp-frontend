@@ -27,7 +27,7 @@ end
 
 --Handle temporary string storage
 local ctr = 0
-local max_strings = c.Param_Get(SERVER_PARAM_STRINGS)
+local max_strings = 10
 
 M.cstr = function(str)
 	local s = M.wstr[ctr]
@@ -157,7 +157,7 @@ M.new_table = new_table
 
 M.connect = function(addr, port)
 	local socket = c.Socket_Connect(worker, request, 
-								   M.cstr(addr), M.cstr(port, 1))
+								   M.cstr(addr), M.cstr(port))
 	coroutine.yield() --Socket (possibly) connects.
 	return socket
 end
@@ -165,7 +165,8 @@ end
 --Wait for n_bytes. Uses asio, yields.
 M.read_data = function(socket, n_bytes, timeout)
 	local output = 
-		c.Socket_Read(socket, worker, request, n_bytes, timeout)
+		ffi.gc(c.Socket_Read(socket, worker, request, n_bytes, timeout),
+			   c.String_Destroy)
 	coroutine.yield()
 	return output
 end

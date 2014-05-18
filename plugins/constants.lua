@@ -119,12 +119,24 @@ typedef struct {
   /* ... request ... */
 } Request;
 
+typedef struct {
+  const char* script; //Worker script
+  int port; //Worker operating port
+  int request_method; //Worker request handling method
+  int request_size; //LuaRequest size
+  int queue_size; //Size of requests to handle per queue
+  int request_pool_size; //Size of requests to initialize in the pool
+  int static_strings; //Amount of static strings to create
+  int client_sockets; //Use client sockets
+  int templates_enabled; //Enable template engine
+  int templates_cache_enabled; //Enable template caching
+} WorkerInit;
+
 void String_Destroy(webapp_str_t*);
+void Worker_Create(WorkerInit* init);
 void Worker_ClearCache(void* worker);
 void Worker_Shutdown(void* worker);
-webapp_str_t* Script_Compile(const char* script);
-void Param_Set(unsigned int param, int value);
-int Param_Get(unsigned int param);
+webapp_str_t* Script_Compile(void* worker, const char* script);
 
 /*
 Request_Finish finalises and cleans up a request object
@@ -357,7 +369,7 @@ int tinydir_readfile(Directory*, DirFile*);
 c = ffi.C
 
 function compile(file)
-	local bc_raw = c.Script_Compile(file)
+	local bc_raw = c.Script_Compile(worker, file)
 	local bc = ffi.string(bc_raw.data, tonumber(bc_raw.len))
 	return loadstring(bc)()
 end

@@ -1,6 +1,6 @@
 @include 'plugins/constants.lua'
 
-common = compile("plugins/common.lua")
+common = compile("common.lua")
 
 function initialise_database()
 	local db = c.Database_Create()
@@ -48,7 +48,7 @@ end
 initialise_database()
 
 --Load handlers. Requires initialised databases.
-local handlers, page_security = compile("plugins/core/handlers.lua")
+local handlers, page_security = compile("core/handlers.lua")
 
 --Create a user, just in case.
 handlers.updateUser[2](
@@ -72,21 +72,8 @@ for file, dir in common.iterdir("templates/", "", 1) do
 	end
 end
 
---[[
-Optional:
-Enable/Disable template caching (for debug purposes): 
-	c.Param_Set(SERVER_PARAM_TPLCACHE, 0)
-Enable/Disable leveldb support (uses three threads, enabled by default): 
-	c.Param_Set(SERVER_PARAM_LEVELDB, 0)
-Set the number of preferred threads (request handlers).
-This value is negated by 3 if leveldb is enabled.
-	c.Param_Set(SERVER_PARAM_THREADS, 2)
-	
---]]
+local init = ffi.new("WorkerInit")
+init.script = "core/process.lua"
+init.static_strings = 10
+c.Worker_Create(init)
 
---[[
-Important:
-Specify the size, in bytes, of the custom request struct allocated by
-webapp for the VM.
-]]
-c.Param_Set(SERVER_PARAM_REQUESTSIZE, ffi.sizeof("LuaRequest"))
