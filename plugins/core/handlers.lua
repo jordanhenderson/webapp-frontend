@@ -4,7 +4,7 @@ math.randomseed(os.time())
 sha2 = require "sha2"
 time = require "time"
 
-local db = c.Database_Get(0)
+local db = c.Database_Get(1)
 
 function hashPassword(password, salt)
 	local pass --hashed password.

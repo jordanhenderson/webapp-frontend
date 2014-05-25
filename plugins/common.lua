@@ -1,5 +1,10 @@
 @include 'plugins/constants.lua'
 
+--[[ Globals consumed by this file: 
+	 static_strings
+	 static_strings_count
+--]]
+
 local M = {}
 M.wstr = ffi.cast("webapp_str_t*", static_strings)
 M.split = function (str, sep)
@@ -27,18 +32,16 @@ end
 
 --Handle temporary string storage
 local ctr = 0
-local max_strings = 10
-
 M.cstr = function(str)
+	ctr = (ctr + 1) % static_strings_count
 	local s = M.wstr[ctr]
-	ctr = ctr + 1 % max_strings
 	M.setstr(str, s)
 	return s
 end
 
 M.buffer = function(str, len)
+	ctr = (ctr + 1) % static_strings_count
 	local s = M.wstr[ctr]
-	ctr = ctr + 1 % max_strings
 	s.data = str
 	s.len = len
 	return s

@@ -124,15 +124,14 @@ typedef struct {
   int port; //Worker operating port
   int request_method; //Worker request handling method
   int request_size; //LuaRequest size
-  int queue_size; //Size of requests to handle per queue
-  int request_pool_size; //Size of requests to initialize in the pool
-  int static_strings; //Amount of static strings to create
   int client_sockets; //Use client sockets
   int templates_enabled; //Enable template engine
   int templates_cache_enabled; //Enable template caching
+  int queue_size; //Size of requests to handle per queue
+  int request_pool_size; //Size of requests to initialize in the pool
 } WorkerInit;
 
-void String_Destroy(webapp_str_t*);
+void String_Destroy(webapp_str_t* string);
 void Worker_Create(WorkerInit* init);
 void Worker_ClearCache(void* worker);
 void Worker_Shutdown(void* worker);
@@ -142,7 +141,7 @@ webapp_str_t* Script_Compile(void* worker, const char* script);
 Request_Finish finalises and cleans up a request object
 @param Request the request object
 */
-void Request_Finish(Request*);
+void Request_Finish(void* worker, Request*);
 
 /*
 Request_GetNext pops the next request from the request queue (or blocks
@@ -191,7 +190,7 @@ Socket_Write writes chunks of data to a request's socket.
 @param socket the socket object to write to
 @param data the data chunk to write
 */
-void Socket_Write(LuaSocket* socket, webapp_str_t* data);
+void Socket_Write(LuaSocket* socket, void* worker, webapp_str_t* data);
 
 /*
 Socket_Read reads data from a socket asynchronously.
@@ -207,6 +206,7 @@ webapp_str_t* Socket_Read(LuaSocket* socket, void* worker, Request* r,
 			  int bytes, int timeout);
 
 //Session Functions
+void Session_Init(void* worker, webapp_str_t* path);
 webapp_str_t* Session_GetValue(Session*, webapp_str_t* key);
 void Session_SetValue(Session*, webapp_str_t* key, webapp_str_t* val);
 

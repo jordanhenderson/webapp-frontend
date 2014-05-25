@@ -1,5 +1,7 @@
 @include 'plugins/constants.lua'
 
+
+init = ffi.new("WorkerInit")
 common = compile("common.lua")
 
 function initialise_database()
@@ -72,8 +74,8 @@ for file, dir in common.iterdir("templates/", "", 1) do
 	end
 end
 
-local init = ffi.new("WorkerInit")
 init.script = "core/process.lua"
-init.static_strings = 10
+init.port = 5000
+init.templates_enabled = 1
+init.request_size = ffi.sizeof("LuaRequest")
 c.Worker_Create(init)
-

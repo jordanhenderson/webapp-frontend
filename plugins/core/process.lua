@@ -4,17 +4,20 @@
 
 --handlers: Function handlers for API calls.
 --page_security: Apply permissions to content pages
-common = 							compile("plugins/common.lua")
-local handlers, page_security = 	compile("plugins/core/handlers.lua")
+common = 							compile("common.lua")
+local handlers, page_security = 	compile("core/handlers.lua")
 
 --Get the application level database. 
-local db = c.Database_Get(0)
+local db = c.Database_Get(1)
 
 --base_template: the base page template.
 local base_template = c.Template_Get(worker, nil)
 
 --asynchronous event table. Used to enable concurrent 
 local events = common.new_table(NUM_EVENTS, 0)
+
+--Initialise session storage.
+c.Session_Init(worker, common.cstr("session"))
 
 local time = require "time"
 local mp = require "MessagePack"
@@ -151,13 +154,12 @@ function get_page(uri_str)
 	end
 	
 	local page_full = page .. ".html"
+	print(base_template)
 	if base_template ~= nil then
-		-- Template process code.
 		local handleTemplate = handlers.handleTemplate
 		if handleTemplate ~= nil then
 			handleTemplate[2](base_template, page, user, auth)
 		end
-		-- End template process code.
 		local content = c.Template_Render(worker, common.cstr(page_full))
 		response = common.appstr(content)
 		c.String_Destroy(content)
@@ -289,7 +291,7 @@ function start_request()
 		pk = mp.pack(#pk) .. pk
 		response = pk
 	end
-	c.Socket_Write(request.socket, common.cstr(response))
+	c.Socket_Write(request.socket, worker, common.cstr(response))
 	return 1
 end
 
@@ -302,7 +304,6 @@ end
 local ev = coroutine.create(run_coroutine)
 --use event_ctr to 'round-robin' events, to speed up empty event finding
 local event_ctr = 1
-local derp = 0
 
 request = c.Request_GetNext(worker)
 while request ~= nil do
@@ -359,9 +360,7 @@ while request ~= nil do
 		--event has finished. Ensure we clear out the old coroutine.
 		if co > 0 then events[co] = nil end
 		--Clean up the request
-		c.Request_Finish(request)
-		print("Finished: " .. derp)
-		derp = derp + 1
+		c.Request_Finish(worker, request)
 	end
 	request = c.Request_GetNext(worker)
 end
