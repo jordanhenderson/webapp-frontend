@@ -129,6 +129,7 @@ typedef struct {
   int templates_cache_enabled; //Enable template caching
   int queue_size; //Size of requests to handle per queue
   int request_pool_size; //Size of requests to initialize in the pool
+  int is_init; //Used to indicate whether the worker should run init.lua.
 } WorkerInit;
 
 void String_Destroy(webapp_str_t* string);

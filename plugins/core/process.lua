@@ -21,7 +21,6 @@ c.Session_Init(worker, common.cstr("session"))
 
 local time = require "time"
 local mp = require "MessagePack"
-
 --The global (current) request object.
 request = nil
 --The lua request object.
@@ -154,7 +153,6 @@ function get_page(uri_str)
 	end
 	
 	local page_full = page .. ".html"
-	print(base_template)
 	if base_template ~= nil then
 		local handleTemplate = handlers.handleTemplate
 		if handleTemplate ~= nil then
