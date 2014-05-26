@@ -120,16 +120,14 @@ typedef struct {
 } Request;
 
 typedef struct {
-  const char* script; //Worker script
-  int port; //Worker operating port
-  int request_method; //Worker request handling method
-  int request_size; //LuaRequest size
-  int client_sockets; //Use client sockets
-  int templates_enabled; //Enable template engine
-  int templates_cache_enabled; //Enable template caching
-  int queue_size; //Size of requests to handle per queue
-  int request_pool_size; //Size of requests to initialize in the pool
-  int is_init; //Used to indicate whether the worker should run init.lua.
+	const char* script; //Worker script
+	int port; //Worker operating port
+	int request_method; //Worker request handling method
+	int request_size; //LuaRequest size
+	int client_sockets; //Use client sockets
+	int queue_size; //Size of requests to handle per queue
+	int request_pool_size; //Size of requests to initialize in the pool
+	int is_init; //Initialising worker
 } WorkerInit;
 
 void String_Destroy(webapp_str_t* string);
@@ -222,17 +220,6 @@ Session* Session_GetFromCookies(void* worker, webapp_str_t* cookies);
 Session* Session_Get(void* worker, webapp_str_t* id);
 Session* Session_New(void* worker, webapp_str_t* uid);
 void Session_Destroy(Session* session);
-
-//Template Functions
-webapp_str_t* Template_Render(void*, webapp_str_t*);
-void* Template_Get(void*, webapp_str_t*);
-void Template_Load(webapp_str_t* page);
-void Template_Include(webapp_str_t* name, webapp_str_t* file);
-void Template_ShowGlobalSection(void*, webapp_str_t*);
-void Template_SetGlobalValue(void*, webapp_str_t* key, webapp_str_t* value);
-void Template_SetValue(void*, webapp_str_t* key, webapp_str_t* value);
-void Template_SetIntValue(void*, webapp_str_t* key, long value);
-void Template_Clear(void*);
 
 //Database Functions
 typedef struct {

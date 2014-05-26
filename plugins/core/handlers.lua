@@ -1,10 +1,8 @@
 @include 'plugins/constants.lua'
 math.randomseed(os.time())
 
-sha2 = require "sha2"
-time = require "time"
-
-local db = c.Database_Get(1)
+local sha2 = require "sha2"
+local time = require "time"
 
 function hashPassword(password, salt)
 	local pass --hashed password.
@@ -123,6 +121,9 @@ function updateUser(v, user, auth)
 	end
 end
 
+updateUser({user="admin",pass="admin",auth=_STR_(AUTH_ADMIN)}, 
+			nil, nil, AUTH_ADMIN)
+
 function clearCache(vars)
 	c.Worker_ClearCache(worker)
 	return MESSAGE("CACHE_CLEARED")
@@ -133,17 +134,7 @@ function shutdown(vars)
 	return MESSAGE("SHUTTING_DOWN")
 end
 
-function handleTemplate(template, page, user, auth)
-	--TODO: Place further template logic here.
-	c.Template_Clear(template)
-	if auth == AUTH_GUEST then
-		c.Template_ShowGlobalSection(template, common.cstr("NOT_LOGGED_IN"))
-	else
-		c.Template_ShowGlobalSection(template, common.cstr("LOGGED_IN"))
-	end
-end
-
-handlers = {
+local handlers = {
 --Login
 	login = {AUTH_GUEST, login},
 --Logout
@@ -152,15 +143,9 @@ handlers = {
 	clearCache = {AUTH_ADMIN, clearCache},
 --Shut down the server.
 	shutdown = {AUTH_ADMIN, shutdown},
---Render a content template.
-	handleTemplate = {AUTH_GUEST, handleTemplate},
 --Update the current user (AUTH_USER) or a specific user.
 	updateUser = {AUTH_USER, updateUser},
 }
 
-page_security = {
-
-}
-
-return handlers, page_security
+return handlers
 

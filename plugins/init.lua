@@ -1,8 +1,7 @@
 @include 'plugins/constants.lua'
 
-
-init = ffi.new("WorkerInit")
-common = compile("common.lua")
+local init = ffi.new("WorkerInit")
+local common = compile("common.lua")
 
 function initialise_database()
 	local db = c.Database_Create()
@@ -49,33 +48,7 @@ end
 --Initialise the database(s)
 initialise_database()
 
---Load handlers. Requires initialised databases.
-local handlers, page_security = compile("core/handlers.lua")
-
---Create a user, just in case.
-handlers.updateUser[2](
-	{user="admin",pass="admin",auth=_STR_(AUTH_ADMIN)}, 
-	nil, nil, AUTH_ADMIN)
-
-for file, dir in common.iterdir("content/", "", 1) do
-	if dir == 0 and common.endsWith(file, ".html") then
-		c.Template_Load(common.cstr("content/" .. file))
-	end
-end
-
-for file, dir in common.iterdir("templates/", "", 1) do
-	if dir == 0 then
-		local f_upper = file:upper()
-		if common.endsWith(f_upper, ".TPL") then
-			f_upper = "T_" .. f_upper:sub(1, -5)
-			c.Template_Include(common.cstr(f_upper), 
-				common.cstr("templates/" .. file, 1))
-		end
-	end
-end
-
 init.script = "core/process.lua"
 init.port = 5000
-init.templates_enabled = 1
 init.request_size = ffi.sizeof("LuaRequest")
 c.Worker_Create(init)
