@@ -5,6 +5,9 @@ c.Session_Init(worker, common.cstr("session"))
 
 db = c.Database_Get(1)
 
+sha2 = require "sha2"
+time = require "time"
+
 local handlers = compile("core/handlers.lua")
 
 --Request handling dependencies

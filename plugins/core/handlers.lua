@@ -1,9 +1,6 @@
 @include 'plugins/constants.lua'
 math.randomseed(os.time())
 
-local sha2 = require "sha2"
-local time = require "time"
-
 function hashPassword(password, salt)
 	local pass --hashed password.
 	--Process password, salt.
