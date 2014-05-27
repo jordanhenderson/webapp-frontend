@@ -31,6 +31,7 @@ for file, dir in common.iterdir("templates/", "", 1) do
 	end
 end
 
+local load_lua = templates.load
 templates.load = function(s)
 	return tpl[s](tpl_vars[s])
 end
@@ -38,7 +39,7 @@ end
 function handleTemplate(page, user, auth)
 	local vars = {}
 	--Process template here.
-
+	
 	local f = pages[page]
 	if f ~= nil then
 		return f(vars)

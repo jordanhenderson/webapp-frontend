@@ -140,6 +140,18 @@ function template.compile(view, key)
     return func, false
 end
 
+function template.subcompile(view, cond)
+    if cond then
+        local o = template.load
+        template.load = function(s) return s end
+        local c = template.compile(view)
+        template.load = o
+        return c
+    else
+        return function () return "" end
+    end
+end
+
 function template.parse(view)
     assert(view, "view was not provided for template.parse(view).")
     view = template.load(view)
@@ -182,6 +194,20 @@ function template.parse(view)
                 if j ~= s then c[#c+1] = "___[#___+1]=[=[" .. view:sub(j, s - 1) .. "]=]" end
                 c[#c+1] = '___[#___+1]=template.compile([=[' .. view:sub(e + 2, x - 1) .. ']=])(context)'
                 i, j = y, y + 1
+            end
+        elseif t == "{#" then
+            local x, y = view:find("}", e + 2, true)
+            if x then
+                if j ~= s then c[#c+1] = "___[#___+1]=[=[" .. view:sub(j, s - 1) .. "]=]" end
+                local var = view:sub(e + 2, x - 1)
+                local es, ey = view:find("{/" .. var .. "}", x, true)
+                if es then
+                    local co = view:sub(x + 1, es - 1)
+                    c[#c+1] = '___[#___+1]=template.subcompile([[' .. co .. ']], context.' .. var .. ')(context)'
+                    i, j = ey, ey + 1
+                else
+                    i, j = y, y + 1
+                end
             end
         end
         i = i + 1
