@@ -1,6 +1,11 @@
 @include 'plugins/constants.lua'
 math.randomseed(os.time())
 
+@def RESPONSE_TYPE_DATA 0
+@def RESPONSE_TYPE_MESSAGE 1
+@def _MESSAGE(msg, reload) '{"msg":"' .. msg .. '"' .. (reload and ', "reload":1' or '') .. @join(', "type":', RESPONSE_TYPE_MESSAGE, '}')
+@def MESSAGE(msg) _MESSAGE(msg, nil)
+
 function hashPassword(password, salt)
 	local pass --hashed password.
 	--Process password, salt.

@@ -8,28 +8,14 @@
 @def COMMIT_TRANSACTION "COMMIT;"
 @def DATABASE_TYPE_SQLITE 0
 @def DATABASE_TYPE_MYSQL 1
-@def RESPONSE_TYPE_DATA 0
-@def RESPONSE_TYPE_MESSAGE 1
 @def AUTH_GUEST 0
 @def AUTH_USER 1
 @def AUTH_ADMIN 2
 @def DATABASE_QUERY_INIT 0
 @def DATABASE_QUERY_STARTED 1
 @def DATABASE_QUERY_FINISHED 2
-@def SERVER_PARAM_PORT 0
-@def SERVER_PARAM_ABORTED 1
-@def SERVER_PARAM_TPLCACHE 2
-@def SERVER_PARAM_LEVELDB 3
-@def SERVER_PARAM_REQUESTSIZE 4
-@def SERVER_PARAM_CLIENTSOCKETS 5
-@def SERVER_PARAM_TEMPLATES 6
-@def SERVER_PARAM_STRINGS 7
-
 @def QUERY_TYPE_INSERT 0
 @def QUERY_TYPE_UPDATE 1
---JSON generator functions
-@def _MESSAGE(msg, reload) '{"msg":"' .. msg .. '"' .. (reload and ', "reload":1' or '') .. @join(', "type":', RESPONSE_TYPE_MESSAGE, '}')
-@def MESSAGE(msg) _MESSAGE(msg, nil)
 
 --Column definitions. Use _PUBLIC for fields that can be changed using update_.
 @def COLS_USER "user", "pass", "salt", "auth"
