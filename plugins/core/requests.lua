@@ -9,62 +9,10 @@ sha2 = require "sha2"
 time = require "time"
 
 local handlers = compile("core/handlers.lua")
+local handleTemplate = compile("core/page_logic.lua")
 
 --Request handling dependencies
-local templates = require "template"
 local mp = require "MessagePack"
-
---Preload templates
-templates.caching(false)
-local pages = {}
-local tpl = {}
-local tpl_vars = {}
-local global_vars = {}
-for file, dir in common.iterdir("content/", "", 1) do
-	if dir == 0 and common.endsWith(file, ".html") then
-		pages[file] = templates.compile("content/" .. file)
-	end
-end
-
-for file, dir in common.iterdir("templates/", "", 1) do
-	if dir == 0 and common.endsWith(file, ".tpl") then
-		tpl[file] = templates.compile("templates/" .. file)
-		tpl_vars[file] = {}
-	end
-end
-
-local load_lua = templates.load
-templates.load = function(s)
-	local vars = {}
-	for i,k in pairs(global_vars) do 
-		vars[i] = k
-	end
-	local local_vars = tpl_vars[s]
-	if local_vars then
-		for i,k in pairs(local_vars) do
-			vars[i] = k
-		end
-	end
-	return tpl[s](vars)
-end
-
-function handleTemplate(page, user, auth)
-	--Process template here.
-	if auth == AUTH_GUEST then
-		global_vars.LOGGED_IN = false
-	else
-		global_vars.LOGGED_IN = true
-	end
-	
-	local f = pages[page]
-	if f ~= nil then
-		return f(global_vars)
-	end
-end
-
-local page_security = {
-
-}
 
 --[[
 daystr: convert a day represented by a number to a string (Mon-Sun)
@@ -204,7 +152,6 @@ get_page: Returns a compiled page (base pages stored in /content)
 @returns a compiled template as a lua string.
 ]]--
 function get_page(uri_str)
-	local response = ""
 	local page = ""
 	local uri = uri_str.data
 	
@@ -219,15 +166,7 @@ function get_page(uri_str)
 	end
 	
 	local user = get_user()
-	local auth = 
-		tonumber(user and common.appstr(COL_USER("auth")) or AUTH_GUEST) 
-	if page_security[page] and auth < page_security[page] then
-		page = "index"
-	end
-	
-	local page_full = page .. ".html"
-	response = handleTemplate(page_full, user, auth)
-	return response
+	return handleTemplate(page, user)
 end 
 
 local function cursor_string (str)

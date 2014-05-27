@@ -16,26 +16,6 @@ function hashPassword(password, salt)
 	return pass, salt
 end
 
-function dump_query(query)
-	local hasdesc = false
-	data = {}
-	desc = {}
-	if c.Query_Select(query) == DATABASE_QUERY_STARTED then
-		repeat
-		row = {}
-		for i=0, query.column_count - 1 do
-			if not hasdesc then
-				desc[i] = common.appstr(query.desc[i])
-			end
-			row[desc[i]] = common.appstr(query.row[i])
-		end
-		data[#data+1] = row
-		hasdesc = true
-		until c.Query_Select(query) == DATABASE_QUERY_FINISHED
-	end
-	return data
-end
-
 function login(v)
 	local password = v.pass
 	local query = common.query_create(db, SELECT_USER_LOGIN)

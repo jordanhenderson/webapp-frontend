@@ -152,6 +152,26 @@ M.query_create = function(db, qry, desc)
 	return q
 end
 
+M.dump_query = function(query)
+	local hasdesc = false
+	data = {}
+	desc = {}
+	if c.Query_Select(query) == DATABASE_QUERY_STARTED then
+		repeat
+		row = {}
+		for i=0, query.column_count - 1 do
+			if not hasdesc then
+				desc[i] = common.appstr(query.desc[i])
+			end
+			row[desc[i]] = common.appstr(query.row[i])
+		end
+		data[#data+1] = row
+		hasdesc = true
+		until c.Query_Select(query) == DATABASE_QUERY_FINISHED
+	end
+	return data
+end
+
 --Preallocate tables.
 local ret, new_table = pcall(require, "table.new")
 if not ret then new_table = function (narr, nrec) return {} end end

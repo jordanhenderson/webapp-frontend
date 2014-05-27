@@ -142,15 +142,13 @@ end
 
 function template.subcompile(view, cond, tgl)
     if cond == tgl then
-        local o = template.load
-        template.load = function(s) return s end
-        local c = template.compile(view)
-        template.load = o
-        return c
+        return template.compile(view)
     else
         return function () return "" end
     end
 end
+
+template.import = template.compile
 
 function template.parse(view)
     assert(view, "view was not provided for template.parse(view).")
@@ -192,22 +190,20 @@ function template.parse(view)
             local x, y = view:find(")}", e + 2, true)
             if x then
                 if j ~= s then c[#c+1] = "___[#___+1]=[=[" .. view:sub(j, s - 1) .. "]=]" end
-                c[#c+1] = '___[#___+1]=template.compile([=[' .. view:sub(e + 2, x - 1) .. ']=])(context)'
+                c[#c+1] = '___[#___+1]=template.import([=[' .. view:sub(e + 2, x - 1) .. ']=])(context)'
                 i, j = y, y + 1
             end
-        elseif t == "{#" then
+        elseif t == "{#" or t == "{^" then
             local x, y = view:find("}", e + 2, true)
             if x then
                 if j ~= s then c[#c+1] = "___[#___+1]=[=[" .. view:sub(j, s - 1) .. "]=]" end
                 local var = view:sub(e + 2, x - 1)
-                local tgl = view:find("!", 0, true)
-                if tgl then
-                    var = var:sub(tgl - 1)
+                if t == "{^" then
                     tgl = "false"
                 else
                     tgl = "true"
                 end
-                
+
                 local es, ey = view:find("{/" .. var .. "}", x, true)
                 if es then
                     local co = view:sub(x + 1, es - 1)
@@ -216,6 +212,19 @@ function template.parse(view)
                 else
                     i, j = y, y + 1
                 end
+            end
+        elseif t == "{!" then
+            local x, y = view:find("!}", e + 2, true)
+            if x then
+                if j ~= s then c[#c+1] = '___[#___+1]=[=[' .. view:sub(j, s - 1) .. ']=]' end
+                i, j = y, y + 1
+            end
+        elseif t == "{\\" then
+            local x, y = view:find("\\}", e + 2, true)
+            if x then
+                if j ~= s then c[#c+1] = "___[#___+1]=[=[" .. view:sub(j, s - 1) .. "]=]" end
+                c[#c+1] = '___[#___+1]=[=[' .. view:sub(e + 2, x - 1) .. ']=]'
+                i, j = y, y + 1
             end
         end
         i = i + 1
