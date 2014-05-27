@@ -15,9 +15,11 @@ local templates = require "template"
 local mp = require "MessagePack"
 
 --Preload templates
+templates.caching(false)
 local pages = {}
 local tpl = {}
 local tpl_vars = {}
+local global_vars = {}
 for file, dir in common.iterdir("content/", "", 1) do
 	if dir == 0 and common.endsWith(file, ".html") then
 		pages[file] = templates.compile("content/" .. file)
@@ -33,16 +35,30 @@ end
 
 local load_lua = templates.load
 templates.load = function(s)
-	return tpl[s](tpl_vars[s])
+	local vars = {}
+	for i,k in pairs(global_vars) do 
+		vars[i] = k
+	end
+	local local_vars = tpl_vars[s]
+	if local_vars then
+		for i,k in pairs(local_vars) do
+			vars[i] = k
+		end
+	end
+	return tpl[s](vars)
 end
 
 function handleTemplate(page, user, auth)
-	local vars = {}
 	--Process template here.
+	if auth == AUTH_GUEST then
+		global_vars.LOGGED_IN = false
+	else
+		global_vars.LOGGED_IN = true
+	end
 	
 	local f = pages[page]
 	if f ~= nil then
-		return f(vars)
+		return f(global_vars)
 	end
 end
 

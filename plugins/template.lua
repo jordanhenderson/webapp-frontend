@@ -140,8 +140,8 @@ function template.compile(view, key)
     return func, false
 end
 
-function template.subcompile(view, cond)
-    if cond then
+function template.subcompile(view, cond, tgl)
+    if cond == tgl then
         local o = template.load
         template.load = function(s) return s end
         local c = template.compile(view)
@@ -200,10 +200,18 @@ function template.parse(view)
             if x then
                 if j ~= s then c[#c+1] = "___[#___+1]=[=[" .. view:sub(j, s - 1) .. "]=]" end
                 local var = view:sub(e + 2, x - 1)
+                local tgl = view:find("!", 0, true)
+                if tgl then
+                    var = var:sub(tgl - 1)
+                    tgl = "false"
+                else
+                    tgl = "true"
+                end
+                
                 local es, ey = view:find("{/" .. var .. "}", x, true)
                 if es then
                     local co = view:sub(x + 1, es - 1)
-                    c[#c+1] = '___[#___+1]=template.subcompile([[' .. co .. ']], context.' .. var .. ')(context)'
+                    c[#c+1] = '___[#___+1]=template.subcompile([[' .. co .. ']],context.' .. var .. ',' .. tgl .. ')(context)'
                     i, j = ey, ey + 1
                 else
                     i, j = y, y + 1
