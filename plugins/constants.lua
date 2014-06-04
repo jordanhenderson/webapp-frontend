@@ -1,5 +1,4 @@
 --Create database queries.
-@def SYSTEM_SCHEMA 'CREATE TABLE IF NOT EXISTS "system" ("key" VARCHAR(10) PRIMARY KEY NOT NULL, "value" VARCHAR(100));'
 @def PRAGMA_FOREIGN "PRAGMA foreign_keys = ON;"
 
 --Basic constants
@@ -63,10 +62,6 @@ function SQL_SESSION(db_type)
 	end
 	return ""
 end
-
-APP_SCHEMA = {
-@join('CREATE TABLE IF NOT EXISTS "users" ("id" INTEGER PRIMARY KEY NOT NULL, "user" VARCHAR(20) NOT NULL, "pass" CHAR(64) NOT NULL, "salt" CHAR(6) NOT NULL, "auth" INTEGER NOT NULL DEFAULT ',AUTH_USER,', UNIQUE (user) ON CONFLICT IGNORE);'),
-}
 
 ffi = require("ffi")
 ffi.cdef [[
